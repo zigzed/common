@@ -13,6 +13,7 @@
 *.a
 
 # ignore generated directories
+*.user
 build
 lib
 bin

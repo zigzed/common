@@ -1,0 +1,38 @@
+#!/bin/sh
+
+MODE="Debug"
+PROF=""
+COMMAND="$1"
+
+do_make() {
+	if [ ! -e build ]; then
+		mkdir build
+	fi
+	cd build
+	echo "cmake ../ -DCMAKE_BUILD_TYPE=$MODE"
+	cmake ../ -DCMAKE_BUILD_TYPE=$MODE
+	make all
+	cd ..
+}
+
+case $COMMAND in
+  Debug|Release|RelWithDebInfo|MinSizeRel)
+	echo
+	echo "building debug library into lib/$COMMAND"
+	MODE=$COMMAND
+	do_make
+	;;
+  clean)
+	cd build
+	make clean
+	cd ..
+	;;
+*)
+	echo
+	echo "usage: ./makeall [Debug|Release|RelWithDebInfo|MinSizeRel|clean]"
+	echo
+	exit 1
+esac
+
+
+exit 0

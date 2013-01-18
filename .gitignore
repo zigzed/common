@@ -11,3 +11,8 @@
 *.lai
 *.la
 *.a
+
+# ignore generated directories
+build
+lib
+bin

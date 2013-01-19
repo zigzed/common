@@ -4,10 +4,24 @@
 #include "common/gtest/gtest.h"
 #include "common/ipc/mmap.h"
 
+struct TestFileRemover {
+public:
+    TestFileRemover(const char* name) : file_(name) {
+        cxx::ipc::file_mapping::remove(file_.c_str());
+        cxx::ipc::shared_memory::remove(file_.c_str());
+    }
+    ~TestFileRemover() {
+        cxx::ipc::file_mapping::remove(file_.c_str());
+        cxx::ipc::shared_memory::remove(file_.c_str());
+    }
+private:
+    std::string file_;
+};
+
 TEST(FileMapping, simple)
 {
+    TestFileRemover cleanup("test.map");
     try {
-        cxx::ipc::file_mapping::remove("test.map");
         cxx::ipc::file_mapping  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(8192);
 
@@ -25,8 +39,8 @@ TEST(FileMapping, simple)
 
 TEST(FileMapping, unaligned)
 {
+    TestFileRemover cleanup("test.map");
     try {
-        cxx::ipc::file_mapping::remove("test.map");
         cxx::ipc::file_mapping  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(8192);
 
@@ -45,9 +59,8 @@ TEST(FileMapping, unaligned)
 
 TEST(FileMapping, copy)
 {
+    TestFileRemover cleanup("test.map");
     try {
-        cxx::ipc::file_mapping::remove("test.map");
-
         cxx::ipc::file_mapping file;
         {
             cxx::ipc::file_mapping  temp("test.map", cxx::ipc::memory_mappable::ReadWrite);
@@ -69,10 +82,10 @@ TEST(FileMapping, copy)
 
 TEST(FileMapping, performance)
 {
+    TestFileRemover cleanup("test.map");
     try {
         cxx::ipc::mapped_region::offset_t filesize = (cxx::ipc::mapped_region::offset_t)512 * 1024 * 1024;
         std::size_t mapsize = 32 * 1024;
-        cxx::ipc::file_mapping::remove("test.map");
         cxx::ipc::file_mapping  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(filesize);
 
@@ -93,9 +106,9 @@ TEST(FileMapping, performance)
 
 TEST(FileMapping, move)
 {
+    TestFileRemover cleanup("test.map");
     try {
         cxx::ipc::mapped_region::offset_t filesize = (cxx::ipc::mapped_region::offset_t)512 * 1024 * 1024;
-        cxx::ipc::file_mapping::remove("test.map");
         cxx::ipc::file_mapping  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(filesize);
 
@@ -121,8 +134,8 @@ TEST(FileMapping, move)
 
 TEST(SharedMemory, simple)
 {
+    TestFileRemover cleanup("test.map");
     try {
-        cxx::ipc::shared_memory::remove("test.map");
         cxx::ipc::shared_memory  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(8192);
 
@@ -140,8 +153,8 @@ TEST(SharedMemory, simple)
 
 TEST(SharedMemory, unaligned)
 {
+    TestFileRemover cleanup("test.map");
     try {
-        cxx::ipc::shared_memory::remove("test.map");
         cxx::ipc::shared_memory  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(8192);
 
@@ -160,9 +173,8 @@ TEST(SharedMemory, unaligned)
 
 TEST(SharedMemory, copy)
 {
+    TestFileRemover cleanup("test.map");
     try {
-        cxx::ipc::shared_memory::remove("test.map");
-
         cxx::ipc::shared_memory file;
         {
             cxx::ipc::shared_memory  temp("test.map", cxx::ipc::memory_mappable::ReadWrite);
@@ -184,10 +196,10 @@ TEST(SharedMemory, copy)
 
 TEST(SharedMemory, performance)
 {
+    TestFileRemover cleanup("test.map");
     try {
         cxx::ipc::mapped_region::offset_t filesize = (cxx::ipc::mapped_region::offset_t)512 * 1024 * 1024;
         std::size_t mapsize = 32 * 1024;
-        cxx::ipc::shared_memory::remove("test.map");
         cxx::ipc::shared_memory  file("test.map", cxx::ipc::memory_mappable::ReadWrite);
         file.size(filesize);
 

@@ -1,11 +1,13 @@
-#include "cxxlib/lua/scriptvm.h"
+/** Copyright (C) 2013 wilburlang@gmail.com
+ */
+#include "common/lua/scriptvm.h"
 extern "C" {
-#include "jit/LuaJIT-2.0.0-beta7/src/lua.h"
-#include "jit/LuaJIT-2.0.0-beta7/src/lualib.h"
-#include "jit/LuaJIT-2.0.0-beta7/src/lauxlib.h"
-//#include "lua/lua.h"
-//#include "lua/lualib.h"
-//#include "lua/lauxlib.h"
+    #include "jit/LuaJIT-2.0.0/src/lua.h"
+    #include "jit/LuaJIT-2.0.0/src/lualib.h"
+    #include "jit/LuaJIT-2.0.0/src/lauxlib.h"
+    //#include "lua/lua.h"
+    //#include "lua/lualib.h"
+    //#include "lua/lauxlib.h"
 }
 #include <sstream>
 #include <iomanip>

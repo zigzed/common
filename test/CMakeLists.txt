@@ -2,6 +2,9 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(PTHREAD pthread)
     set(DL	dl)
     set(RT	rt)
+    set(LUALIB	luajit)
+else(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(LUALIB	lua51lib)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 include_directories(../)
@@ -11,4 +14,7 @@ set(LIBRARY_OUTPUT_PATH ../../bin/${CMAKE_BUILD_TYPE})
 
 add_executable(test_datetime test_datetime.cpp)
 target_link_libraries(test_datetime common gtest ${PTHREAD})
-
+add_executable(test_luausage test_luausage.cpp)
+target_link_libraries(test_luausage common gtest ${LUALIB} ${DL})
+add_executable(test_luabench test_luabench.cpp)
+target_link_libraries(test_luabench common gtest ${LUALIB} ${DL})

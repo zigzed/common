@@ -35,9 +35,24 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_link_libraries(lua51 lua51lib m dl)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    add_custom_command(OUTPUT ${LIBRARY_OUTPUT_PATH}/libluajit.a
+        COMMAND make
+        COMMAND cp libluajit.a ${LIBRARY_OUTPUT_PATH}/.
+        COMMAND cp luajit ${EXECUTABLE_OUTPUT_PATH}/.
+        COMMAND make clean
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lua/jit/LuaJIT-2.0.0/src
+        COMMENT "makeing luajit")
+    add_custom_target(cxxliblua ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/libluajit.a)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 set(COMMON_SRC
     ../common/config.h
     ../common/datetime.h datetime.cpp
+    ../common/lua/scriptbind.h ../common/lua/scriptcall.h 
+    ../common/lua/scriptutil.h ../common/lua/scriptvm.h
+    lua/classhelper.cpp lua/scriptbind.cpp lua/scriptcall.cpp
+    lua/scriptgc.cpp lua/scriptstack.cpp lua/scriptvm.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

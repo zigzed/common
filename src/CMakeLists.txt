@@ -57,6 +57,7 @@ set(COMMON_SRC
     ipc/shared_memory.cpp
     ../common/str/tokenizer.h ../common/str/trim.h 
     ../common/str/regex.h ../common/str/compare.h str/tokenizer.cpp
+    ../common/sys/dynlib.h sys/dynlib.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

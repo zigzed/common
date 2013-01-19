@@ -53,6 +53,8 @@ set(COMMON_SRC
     ../common/lua/scriptutil.h ../common/lua/scriptvm.h
     lua/classhelper.cpp lua/scriptbind.cpp lua/scriptcall.cpp
     lua/scriptgc.cpp lua/scriptstack.cpp lua/scriptvm.cpp
+    ../common/ipc/mmap.h ipc/file_mapping.cpp ipc/mapped_region.cpp
+    ipc/shared_memory.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

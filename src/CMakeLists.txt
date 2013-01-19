@@ -55,6 +55,8 @@ set(COMMON_SRC
     lua/scriptgc.cpp lua/scriptstack.cpp lua/scriptvm.cpp
     ../common/ipc/mmap.h ipc/file_mapping.cpp ipc/mapped_region.cpp
     ipc/shared_memory.cpp
+    ../common/str/tokenizer.h ../common/str/trim.h 
+    ../common/str/regex.h ../common/str/compare.h str/tokenizer.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

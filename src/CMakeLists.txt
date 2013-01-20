@@ -71,6 +71,10 @@ set(COMMON_SRC
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h
     ../common/cfg/properties.h cfg/properties.cpp
+    ../common/cfg/json/json-forwards.h ../common/cfg/json/json.h
+    cfg/json/jsoncpp.cpp
+    ../common/cfg/xml/config.h ../common/cfg/xml/xml.h
+    cfg/xml/xml.cpp
     ../common/log/log.h ../common/log/logmacro.h
     log/coutlog.h log/coutlog.cpp log/filelog.h log/filelog.cpp
     log/logger.h log/logger.cpp log/sloglog.h log/sloglog.cpp

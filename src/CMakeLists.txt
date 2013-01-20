@@ -58,6 +58,14 @@ set(COMMON_SRC
     ../common/str/tokenizer.h ../common/str/trim.h 
     ../common/str/regex.h ../common/str/compare.h str/tokenizer.cpp
     ../common/sys/dynlib.h sys/dynlib.cpp
+    ../common/sys/cputimes.h sys/cputimes.cpp
+    ../common/sys/locker.h ../common/sys/mutex.h sys/mutex.cpp
+    ../common/sys/ctrlhandler.h sys/ctrlhandler.cpp
+    ../common/sys/seh.h sys/seh_w32.cpp
+    ../common/sys/filesystem.h sys/filesystem_linux.cpp 
+    sys/filesystem_w32.cpp
+    ../common/fastdelegate.h ../common/fastdelegatebind.h
+    ../common/sys/threads.h sys/threads.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

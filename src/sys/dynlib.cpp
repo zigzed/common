@@ -1,3 +1,5 @@
+/** Copyright (C) 2013 wilburlang@gmail.com
+ */
 #include "common/sys/dynlib.h"
 #include "common/config.h"
 #if     defined(OS_WINDOWS)

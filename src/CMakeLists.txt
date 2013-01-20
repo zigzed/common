@@ -66,6 +66,9 @@ set(COMMON_SRC
     sys/filesystem_w32.cpp
     ../common/fastdelegate.h ../common/fastdelegatebind.h
     ../common/sys/threads.h sys/threads.cpp
+    ../common/alg/ewahbitmap.h ../common/alg/lrucache.h
+    ../common/alg/expression.h alg/expression.cpp
+    ../common/alg/digraph.h
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

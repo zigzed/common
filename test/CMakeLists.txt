@@ -46,4 +46,5 @@ add_executable(test_lrucache test_lrucache.cpp)
 target_link_libraries(test_lrucache common gtest)
 add_executable(test_expression test_expression.cpp)
 target_link_libraries(test_expression common gtest)
-
+add_executable(test_properties test_properties.cpp)
+target_link_libraries(test_properties common gtest)

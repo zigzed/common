@@ -70,6 +70,11 @@ set(COMMON_SRC
     ../common/alg/ewahbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h
+    ../common/cfg/properties.h cfg/properties.cpp
+    ../common/log/log.h ../common/log/logmacro.h
+    log/coutlog.h log/coutlog.cpp log/filelog.h log/filelog.cpp
+    log/logger.h log/logger.cpp log/sloglog.h log/sloglog.cpp
+    log/log.cpp log/loginfo.h
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

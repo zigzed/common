@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
-#ifndef CXX_ALG_EWAHBITMAP_H
-#define CXX_ALG_EWAHBITMAP_H
+#ifndef CXX_ALG_RLCBITMAP_H
+#define CXX_ALG_RLCBITMAP_H
 #include <algorithm>
 #include <vector>
 #include <string>
@@ -280,25 +280,25 @@ namespace cxx {
         ////////////////////////////////////////////////////////////////////////
 
         template<typename uword >
-        class ewah_bitmap_iterator;
+        class rlc_bitmap_iterator;
         template<typename uword >
-        class ewah_bitmap_forward_iteartor;
+        class rlc_bitmap_forward_iteartor;
         template<typename uword >
-        class ewah_bitmap_raw_iterator;
-        class bitmap_statistics;
+        class rlc_bitmap_raw_iterator;
+        class bitmap_stat;
 
         /** compressed bitmap using std::vector */
         template<typename uword = uint32_t >
-        class ewah_bitmap {
+        class rlc_bitmap {
         public:
-            typedef ewah_bitmap_forward_iteartor<uword >    const_iterator;
+            typedef rlc_bitmap_forward_iteartor<uword >    const_iterator;
             typedef std::vector<uword >                     container;
             typedef std::vector<size_t >                    bit_array;
 
-            ewah_bitmap();
+            rlc_bitmap();
 
             /** set the bitmap size. padding with zeros if necessary */
-            void            make_same_size(ewah_bitmap& r) {
+            void            make_same_size(rlc_bitmap& r) {
                 if(r.bitlen() < bitlen_) {
                     r.padding(bitlen_);
                 }
@@ -325,20 +325,20 @@ namespace cxx {
              * will be very inefficient.
              * it can be faster to use bitset() */
             const_iterator  begin() const {
-                return ewah_bitmap_forward_iteartor<uword >(buffer_);
+                return rlc_bitmap_forward_iteartor<uword >(buffer_);
             }
             const_iterator  end() const {
-                return ewah_bitmap_forward_iteartor<uword >(buffer_, buffer_.size());
+                return rlc_bitmap_forward_iteartor<uword >(buffer_, buffer_.size());
             }
             /** iterate over the uncompressed words.
              * this is faster than begin() and end(). */
-            ewah_bitmap_iterator<uword >    uncompress() const {
-                return ewah_bitmap_iterator<uword >(buffer_);
+            rlc_bitmap_iterator<uword >    uncompress() const {
+                return rlc_bitmap_iterator<uword >(buffer_);
             }
             /** iterate over the compressed words.
              * this is faster than any other iterator. */
-            ewah_bitmap_raw_iterator<uword > raw_iterator() const {
-                return ewah_bitmap_raw_iterator<uword >(*this);
+            rlc_bitmap_raw_iterator<uword > raw_iterator() const {
+                return rlc_bitmap_raw_iterator<uword >(*this);
             }
 
             /** return the set bits. can be much faster than iterating through
@@ -355,46 +355,48 @@ namespace cxx {
             /** return the size of buffer in bytes. this is the storage cost */
             size_t          memory() const { return buffer_.size() * sizeof(uword); }
             /** append the content of other compressed bitmap */
-            void            append(const ewah_bitmap<uword >& rhs);
+            void            append(const rlc_bitmap<uword >& rhs);
 
-            void            _and(const ewah_bitmap<uword >& rhs, ewah_bitmap<uword >& result) const;
-            void            _or (const ewah_bitmap<uword >& rhs, ewah_bitmap<uword >& result) const;
-            void            _not(ewah_bitmap<uword >& result) const;
+            void            _and(const rlc_bitmap<uword >& rhs, rlc_bitmap<uword >& result) const;
+            void            _or (const rlc_bitmap<uword >& rhs, rlc_bitmap<uword >& result) const;
+            void            _not(rlc_bitmap<uword >& result) const;
             void            _not();
+
+            bitmap_stat     stat() const;
 
             /** computer the logical and with another compressed bitmap.
              * the time complexity is proportional to the sum of the compressed
              * bitmap size */
-            ewah_bitmap<uword > operator & (const ewah_bitmap<uword >& rhs) const {
-                ewah_bitmap<uword > result;
+            rlc_bitmap<uword > operator & (const rlc_bitmap<uword >& rhs) const {
+                rlc_bitmap<uword > result;
                 this->_and(rhs, result);
                 return result;
             }
             /** computer the logical or with another compressed bitmap.
              * the time complexity is proportional to the sum of the compressed
              * bitmap size */
-            ewah_bitmap<uword > operator | (const ewah_bitmap<uword >& rhs) const {
-                ewah_bitmap<uword > result;
+            rlc_bitmap<uword > operator | (const rlc_bitmap<uword >& rhs) const {
+                rlc_bitmap<uword > result;
                 this->_or(rhs, result);
                 return result;
             }
             /** comuter the logical not */
-            ewah_bitmap<uword > operator ~ () const {
-                ewah_bitmap<uword > result;
+            rlc_bitmap<uword > operator ~ () const {
+                rlc_bitmap<uword > result;
                 this->_not(result);
                 return result;
             }
-            ewah_bitmap<uword > operator + (const ewah_bitmap<uword >& rhs) const {
-                ewah_bitmap<uword > result(*this);
+            rlc_bitmap<uword > operator + (const rlc_bitmap<uword >& rhs) const {
+                rlc_bitmap<uword > result(*this);
                 result.append(rhs);
                 return result;
             }
-            ewah_bitmap<uword >& operator+=(const ewah_bitmap<uword >& rhs) {
+            rlc_bitmap<uword >& operator+=(const rlc_bitmap<uword >& rhs) {
                 this->append(rhs);
                 return *this;
             }
 
-            bool operator== (const ewah_bitmap<uword >& rhs) const {
+            bool operator== (const rlc_bitmap<uword >& rhs) const {
                 if(bitlen_ != rhs.bitlen_) return false;
                 if(buffer_.size() != rhs.buffer_.size()) return false;
                 for(size_t i = 0; i < buffer_.size(); ++i) {
@@ -406,9 +408,9 @@ namespace cxx {
             enum { word_in_bits = sizeof(uword) * 8 };
 
 //            /** copy operation is expensive, disabled */
-//            ewah_bitmap(const ewah_bitmap& rhs);
+//            rlc_bitmap(const rlc_bitmap& rhs);
 //            /** assign operation is expensive, disabled */
-//            ewah_bitmap& operator= (const ewah_bitmap& rhs);
+//            rlc_bitmap& operator= (const rlc_bitmap& rhs);
 
             size_t          padding(size_t s);
             size_t          add_stream_of_empty_words(bool v, size_t number);
@@ -424,14 +426,14 @@ namespace cxx {
         };
 
         template<typename uword >
-        class ewah_bitmap_iterator {
+        class rlc_bitmap_iterator {
         public:
-            typedef typename ewah_bitmap<uword >::container container;
+            typedef typename rlc_bitmap<uword >::container container;
 
             static const uword zero     = 0;
             static const uword notzero  = static_cast<uword >(~0);
 
-            ewah_bitmap_iterator(const ewah_bitmap_iterator& o)
+            rlc_bitmap_iterator(const rlc_bitmap_iterator& o)
                 : pointer_(o.pointer_), buffers_(o.buffers_), compressed_(o.compressed_),
                   literal_(o.literal_), rl_(o.rl_), lw_(o.lw_), b_(o.b_) {}
             bool has_next() const { return pointer_ < buffers_.size(); }
@@ -457,7 +459,7 @@ namespace cxx {
                 return result;
             }
         private:
-            ewah_bitmap_iterator(const container& buf) :
+            rlc_bitmap_iterator(const container& buf) :
                 pointer_(0), buffers_(buf), compressed_(0), literal_(0),
                 rl_(0), lw_(0), b_(0) {
                 if(pointer_ < buffers_.size())
@@ -484,7 +486,7 @@ namespace cxx {
                 }
             }
 
-            friend class ewah_bitmap<uword >;
+            friend class rlc_bitmap<uword >;
             size_t              pointer_;
             const container&    buffers_;
             uword               compressed_;
@@ -494,7 +496,7 @@ namespace cxx {
         };
 
         template<typename uword >
-        class ewah_bitmap_forward_iteartor {
+        class rlc_bitmap_forward_iteartor {
         public:
             enum { word_in_bits = sizeof(uword) * 8 };
             typedef std::forward_iterator_tag   iterator_category;
@@ -502,10 +504,10 @@ namespace cxx {
             typedef size_t&                     reference;
             typedef size_t                      value_type;
             typedef ptrdiff_t                   difference_type;
-            typedef ewah_bitmap_forward_iteartor<uword >    type_of_iterator;
-            typedef typename ewah_bitmap<uword >::container container;
+            typedef rlc_bitmap_forward_iteartor<uword >    type_of_iterator;
+            typedef typename rlc_bitmap<uword >::container container;
 
-            ewah_bitmap_forward_iteartor(const ewah_bitmap_forward_iteartor& o)
+            rlc_bitmap_forward_iteartor(const rlc_bitmap_forward_iteartor& o)
                 : buffers_(o.buffers_), pointer_(o.pointer_),
                   pre_off_(o.pre_off_), cur_off_(o.cur_off_), running_(o.running_)
             {}
@@ -541,13 +543,13 @@ namespace cxx {
                 return &buffers_ != &o.buffers_ || pointer_ != o.pointer_ ||
                         pre_off_ != o.pre_off_ || cur_off_ != o.cur_off_;
             }
-            ewah_bitmap_forward_iteartor& operator++() {
+            rlc_bitmap_forward_iteartor& operator++() {
                 ++cur_off_;
                 advance_to_next_setbit();
                 return *this;
             }
-            ewah_bitmap_forward_iteartor operator++(int) {
-                ewah_bitmap_forward_iteartor old(*this);
+            rlc_bitmap_forward_iteartor operator++(int) {
+                rlc_bitmap_forward_iteartor old(*this);
                 +cur_off_;
                 advance_to_next_setbit();
                 return old;
@@ -555,7 +557,7 @@ namespace cxx {
         private:
             enum { use_trailing_zeros = true };
 
-            ewah_bitmap_forward_iteartor(const container& buf, size_t start = 0)
+            rlc_bitmap_forward_iteartor(const container& buf, size_t start = 0)
                 : buffers_(buf), pointer_(start), pre_off_(0), cur_off_(0),
                   running_(0)
             {
@@ -620,7 +622,7 @@ namespace cxx {
                 return true;
             }
 
-            friend class ewah_bitmap<uword >;
+            friend class rlc_bitmap<uword >;
             const container&                    buffers_;
             size_t                              pointer_;
             size_t                              pre_off_;
@@ -629,11 +631,11 @@ namespace cxx {
         };
 
         template<typename uword = uint32_t >
-        class ewah_bitmap_raw_iterator {
+        class rlc_bitmap_raw_iterator {
         public:
-            ewah_bitmap_raw_iterator(const ewah_bitmap<uword >& p)
+            rlc_bitmap_raw_iterator(const rlc_bitmap<uword >& p)
                 : ptr_(0), buf_(&p.buffer()), rlw_((*buf_)[ptr_]) {}
-            ewah_bitmap_raw_iterator(const ewah_bitmap_raw_iterator& o)
+            rlc_bitmap_raw_iterator(const rlc_bitmap_raw_iterator& o)
                 : ptr_(o.ptr_), buf_(o.buf_), rlw_(o.rlw_) {}
 
             bool has_next() const { return ptr_ < buf_->size(); }
@@ -649,8 +651,8 @@ namespace cxx {
                 return &(buf_->at(static_cast<size_t >(ptr_ - rlw_.get_literal_len())));
             }
         private:
-            typedef typename ewah_bitmap<uword >::container container;
-            ewah_bitmap_raw_iterator();
+            typedef typename rlc_bitmap<uword >::container container;
+            rlc_bitmap_raw_iterator();
             size_t                                  ptr_;
             const container*                        buf_;
             detail::BufferedRunLengthWord<uword >   rlw_;
@@ -662,13 +664,13 @@ namespace cxx {
 
         ////////////////////////////////////////////////////////////////////////
         template<typename uword >
-        inline ewah_bitmap<uword >::ewah_bitmap()
+        inline rlc_bitmap<uword >::rlc_bitmap()
             : buffer_(1, 0), bitlen_(0), last_(0)
         {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::set(size_t i)
+        inline void rlc_bitmap<uword >::set(size_t i)
         {
             assert(i >= bitlen_);
             size_t dist = (i + word_in_bits) / word_in_bits - (bitlen_ + word_in_bits - 1) / word_in_bits;
@@ -696,7 +698,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword >::add(uword data, size_t bits)
+        inline size_t rlc_bitmap<uword >::add(uword data, size_t bits)
         {
             bitlen_ += bits;
             if(data == 0) {
@@ -711,7 +713,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::reset()
+        inline void rlc_bitmap<uword >::reset()
         {
             buffer_.clear();
             buffer_.push_back(0);
@@ -720,7 +722,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword >::count() const
+        inline size_t rlc_bitmap<uword >::count() const
         {
             size_t tot = 0;
             size_t ptr = 0;
@@ -740,7 +742,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::debug() const
+        inline void rlc_bitmap<uword >::debug() const
         {
 #ifndef  NDEBUG
             std::cout << "number of compressed words: " << buffer_.size() << ", bytes: " << memory() << "\n";
@@ -762,7 +764,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline typename ewah_bitmap<uword >::bit_array ewah_bitmap<uword >::bitset() const
+        inline typename rlc_bitmap<uword >::bit_array rlc_bitmap<uword >::bitset() const
         {
             bit_array   ans;
             size_t  pos = 0;
@@ -803,15 +805,15 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::_and(const ewah_bitmap<uword> &rhs, ewah_bitmap<uword> &result) const
+        inline void rlc_bitmap<uword >::_and(const rlc_bitmap<uword> &rhs, rlc_bitmap<uword> &result) const
         {
             size_t max_bitlen = bitlen() > rhs.bitlen() ? bitlen() : rhs.bitlen();
             result.reset();
             result.buffer().reserve(buffer_.size() > rhs.buffer().size() ? buffer_.size() : rhs.buffer().size());
 
-            ewah_bitmap<uword > temp_bitmap;
-            ewah_bitmap_raw_iterator<uword > i = rhs.raw_iterator();
-            ewah_bitmap_raw_iterator<uword > j = this->raw_iterator();
+            rlc_bitmap<uword > temp_bitmap;
+            rlc_bitmap_raw_iterator<uword > i = rhs.raw_iterator();
+            rlc_bitmap_raw_iterator<uword > j = this->raw_iterator();
             if(rhs.bitlen() < this->bitlen()) {
                 temp_bitmap = rhs;
                 temp_bitmap.padding(this->bitlen());
@@ -898,15 +900,15 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::_or(const ewah_bitmap<uword> &rhs, ewah_bitmap<uword> &result) const
+        inline void rlc_bitmap<uword >::_or(const rlc_bitmap<uword> &rhs, rlc_bitmap<uword> &result) const
         {
             size_t max_bitlen = bitlen() > rhs.bitlen() ? bitlen() : rhs.bitlen();
             result.reset();
             result.buffer().reserve(buffer_.size() > rhs.buffer().size() ? buffer_.size() : rhs.buffer().size());
 
-            ewah_bitmap<uword > temp_bitmap;
-            ewah_bitmap_raw_iterator<uword > i = rhs.raw_iterator();
-            ewah_bitmap_raw_iterator<uword > j = this->raw_iterator();
+            rlc_bitmap<uword > temp_bitmap;
+            rlc_bitmap_raw_iterator<uword > i = rhs.raw_iterator();
+            rlc_bitmap_raw_iterator<uword > j = this->raw_iterator();
             if(rhs.bitlen() < this->bitlen()) {
                 temp_bitmap = rhs;
                 temp_bitmap.padding(this->bitlen());
@@ -999,11 +1001,11 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::_not(ewah_bitmap<uword> &result) const
+        inline void rlc_bitmap<uword >::_not(rlc_bitmap<uword> &result) const
         {
             result.reset();
             result.buffer().reserve(buffer_.size());
-            ewah_bitmap_raw_iterator<uword > i = this->raw_iterator();
+            rlc_bitmap_raw_iterator<uword > i = this->raw_iterator();
             while(i.has_next()) {
                 detail::BufferedRunLengthWord<uword >& rlw = i.next();
                 result.add_stream_of_empty_words(!rlw.get_running_bit(), rlw.get_running_len());
@@ -1018,7 +1020,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::_not()
+        inline void rlc_bitmap<uword >::_not()
         {
             size_t ptr = 0;
             while(ptr < buffer_.size()) {
@@ -1037,7 +1039,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::append(const ewah_bitmap<uword> &rhs)
+        inline void rlc_bitmap<uword >::append(const rlc_bitmap<uword> &rhs)
         {
             assert(bitlen_ % word_in_bits == 0);
             if(bitlen_ % word_in_bits == 0) {
@@ -1060,7 +1062,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword >::add_literal_word(uword data)
+        inline size_t rlc_bitmap<uword >::add_literal_word(uword data)
         {
             detail::RunLengthWord<uword > lastRunning(buffer_[last_]);
             size_t number = lastRunning.get_literal_len();
@@ -1079,7 +1081,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword >::add_empty_word(bool v)
+        inline size_t rlc_bitmap<uword >::add_empty_word(bool v)
         {
             detail::RunLengthWord<uword > lastRunning(buffer_[last_]);
             bool not_literal_word = (lastRunning.get_literal_len() == 0);
@@ -1111,7 +1113,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword>::padding(size_t s)
+        inline size_t rlc_bitmap<uword>::padding(size_t s)
         {
             assert(bitlen_ <= s);
             size_t missing_bit = s - bitlen_;
@@ -1125,7 +1127,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword >::add_stream_of_empty_words(bool v, size_t number)
+        inline size_t rlc_bitmap<uword >::add_stream_of_empty_words(bool v, size_t number)
         {
             if(number == 0) {
                 return 0;
@@ -1178,7 +1180,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline size_t ewah_bitmap<uword >::add_stream_of_dirty_words(const uword *v, size_t number)
+        inline size_t rlc_bitmap<uword >::add_stream_of_dirty_words(const uword *v, size_t number)
         {
             if(number == 0)
                 return 0;
@@ -1211,7 +1213,7 @@ namespace cxx {
         }
 
         template<typename uword >
-        inline void ewah_bitmap<uword >::fast_add_stream_of_empty_words(bool v, size_t number)
+        inline void rlc_bitmap<uword >::fast_add_stream_of_empty_words(bool v, size_t number)
         {
             if((detail::RunLengthWord<uword >::get_running_bit(buffer_[last_]) != v) &&
                     detail::RunLengthWord<uword >::size(buffer_[last_]) == 0) {
@@ -1246,6 +1248,40 @@ namespace cxx {
                     detail::RunLengthWord<uword >::set_running_bit(buffer_[last_], v);
                 detail::RunLengthWord<uword >::set_running_len(buffer_[last_], static_cast<uword >(number));
             }
+        }
+
+        class bitmap_stat {
+        public:
+            bitmap_stat() : literal(0), compressed(0), marker(0), overrun(0) {}
+
+            size_t  get_compressed() const { return literal + marker; }
+            size_t  get_uncompressed() const { return literal + compressed; }
+            size_t  get_dirty_words() const { return literal; }
+            size_t  get_clean_words() const { return compressed; }
+            size_t  get_markers() const { return marker; }
+            size_t  get_over_runs() const { return overrun; }
+        public:
+            size_t  literal;
+            size_t  compressed;
+            size_t  marker;
+            size_t  overrun;
+        };
+
+        template<typename uword >
+        bitmap_stat rlc_bitmap<uword >::stat() const
+        {
+            bitmap_stat stat;
+            rlc_bitmap_raw_iterator<uword > it = raw_iterator();
+            while(it.has_next()) {
+                detail::BufferedRunLengthWord<uword >& rlw(it.next());
+                stat.marker     += 1;
+                stat.literal    += rlw.get_literal_len();
+                stat.compressed += rlw.get_running_len();
+                if(rlw.get_running_len() == detail::RunLengthWord<uword >::LargestRunningLengthCount) {
+                    stat.overrun+= 1;
+                }
+            }
+            return stat;
         }
 
     }

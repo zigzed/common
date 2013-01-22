@@ -67,7 +67,7 @@ set(COMMON_SRC
     ../common/fastdelegate.h ../common/fastdelegatebind.h
     ../common/sys/threads.h sys/threads.cpp
     ../common/sys/atomic.h sys/atomic.cpp
-    ../common/alg/ewahbitmap.h ../common/alg/lrucache.h
+    ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h
     ../common/cfg/properties.h cfg/properties.cpp

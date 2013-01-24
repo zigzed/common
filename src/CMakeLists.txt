@@ -79,6 +79,8 @@ set(COMMON_SRC
     log/coutlog.h log/coutlog.cpp log/filelog.h log/filelog.cpp
     log/logger.h log/logger.cpp log/sloglog.h log/sloglog.cpp
     log/log.cpp log/loginfo.h
+    ../common/sql/sqlite++.h sql/sqlite++.cpp
+    sql/sqlite/sqlite3.h sql/sqlite/sqlite3ext.h sql/sqlite/sqlite3.c
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

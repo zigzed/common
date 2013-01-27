@@ -6,6 +6,8 @@ set(LIBRARY_OUTPUT_PATH ${COMMON_ROOT}/lib/${CMAKE_BUILD_TYPE})
 set(EXECUTABLE_OUTPUT_PATH ${COMMON_ROOT}/bin/${CMAKE_BUILD_TYPE})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(PTHREAD pthread)
+    set(DL      dl)
     add_definitions(-DLUA_USE_LINUX)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 if(${CMAKE_SYSTEM_NAME} MATCHES "bsd")
@@ -90,6 +92,9 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 link_directories(../../lib/${CMAKE_BUILD_TYPE})
 add_library(common STATIC ${COMMON_SRC})
+
+add_executable(sqlite3 sql/sqlite/shell.c)
+target_link_libraries(sqlite3 common ${PTHREAD} ${DL} icui18n icuuc)
 
 set_target_properties(common PROPERTIES VERSION ${common_version})
 

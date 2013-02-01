@@ -253,6 +253,7 @@ namespace cxx {
         if(!cmd_)
             throw sqlite3_error("database reader is closed");
 
+        index += 1;
         if((index > (cmd_->argc_ - 1)) || (index < 0)) {
             std::ostringstream str;
             str << "database reader get<int>(" << index << ") out of range"

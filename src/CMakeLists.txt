@@ -19,6 +19,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
+add_definitions(-DSQLITE_ENABLE_FTS3)
+add_definitions(-DSQLITE_ENABLE_FTS3_PARENTHESIS)
+add_definitions(-DSQLITE_ENABLE_ICU)
+
 set(LUA51_SRC
     lua/lua/lapi.c lua/lua/lauxlib.c lua/lua/lbaselib.c lua/lua/lcode.c
     lua/lua/ldblib.c lua/lua/ldebug.c lua/lua/ldo.c lua/lua/ldump.c
@@ -66,6 +70,7 @@ set(COMMON_SRC
     ../common/sys/seh.h sys/seh_w32.cpp
     ../common/sys/filesystem.h sys/filesystem_linux.cpp 
     sys/filesystem_w32.cpp
+    ../common/sys/event.h sys/event.cpp
     ../common/fastdelegate.h ../common/fastdelegatebind.h
     ../common/sys/threads.h sys/threads.cpp
     ../common/sys/atomic.h sys/atomic.cpp

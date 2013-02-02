@@ -33,7 +33,9 @@ public:
                 sleep ++;
             }
         }
-        std::cout << "reader sleep: " << sleep << "\n";
+        std::cout << "reader sleep: " << sleep << ", acq:" << p_.info().acq
+                  << ", rel: " << p_.info().rel << ", add: " << p_.info().add
+                  << ", del: " << p_.info().del << "\n";
     }
 
     void writer()
@@ -101,6 +103,9 @@ public:
         }
         std::cout << "reader sleep: " << sleep << ", a: " << a_cnt << ", p: "
                   << p_cnt << "\n";
+        std::cout << "reader sleep: " << sleep << ", acq:" << p_.info().acq
+                  << ", rel: " << p_.info().rel << ", add: " << p_.info().add
+                  << ", del: " << p_.info().del << "\n";
     }
 
     void writer()
@@ -215,8 +220,8 @@ TEST(pipe, performance)
 {
     PipeTester t(10*1000*1000, 1);
     cxx::sys::cpu_times timer;
-    cxx::sys::thread t2 = cxx::sys::threadcontrol::create(cxx::MakeDelegate(&t, &PipeTester::writer), "writer");
     cxx::sys::thread t1 = cxx::sys::threadcontrol::create(cxx::MakeDelegate(&t, &PipeTester::reader), "reader");
+    cxx::sys::thread t2 = cxx::sys::threadcontrol::create(cxx::MakeDelegate(&t, &PipeTester::writer), "writer");
     t1.join();
     t2.join();
     timer.stop();

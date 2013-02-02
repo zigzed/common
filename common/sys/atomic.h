@@ -21,35 +21,34 @@ namespace cxx {
 
         namespace detail {
             class atomic_ptr_base_t {
-            public:
-                static void* do_xchg(volatile void* ptr, void* val);
-                static void* do_cas(volatile void* ptr, void* cmp, void* val);
+            protected:
+                void* do_xchg(void* val);
+                void* do_cas(void* cmp, void* val);
+                volatile void* ptr_;
             };
         }
 
         template<typename T >
         class atomic_ptr_t : private detail::atomic_ptr_base_t {
         public:
-            atomic_ptr_t() : ptr_(0) {}
-            atomic_ptr_t(T* ptr) : ptr_(0) { set(ptr); }
+            atomic_ptr_t() { this->ptr_ = 0; }
+            atomic_ptr_t(T* ptr) { set(ptr); }
             ~atomic_ptr_t() {}
             void    set(T* ptr) { this->ptr_ = ptr; }
             /** perform atomic 'exchange pointer' operation. pointer is set
              * to 'val' value, and the old value is returned
              */
             T*      xchg(T* val) {
-                return (T* )do_xchg(ptr_, val);
+                return (T* )do_xchg((void* )val);
             }
             /** perform atomic 'compare and swap' operation. pointer is compared
              * to 'cmp' argument and if they are equal, it's value set to 'val',
              * old value of the pointer is returned
              */
             T*      cas(T* cmp, T* val) {
-                return (T* )do_cas(ptr_, cmp, val);
+                return (T* )do_cas((void* )cmp, (void* )val);
             }
         private:
-            volatile T*             ptr_;
-
             atomic_ptr_t(const atomic_ptr_t& );
             atomic_ptr_t& operator= (const atomic_ptr_t& );
         };

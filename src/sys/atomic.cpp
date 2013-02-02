@@ -42,23 +42,23 @@ namespace cxx {
         }
 
         namespace detail {
-            void* atomic_ptr_base_t::do_xchg(volatile void *ptr, void *val)
+            void* atomic_ptr_base_t::do_xchg(void *val)
             {
                  void *old;
                 __asm__ volatile (
                     "lock; xchg %0, %2"
-                    : "=r" (old), "=m" (ptr)
-                    : "m" (ptr), "0" (val));
+                    : "=r" (old), "=m" (ptr_)
+                    : "m" (ptr_), "0" (val));
                 return old;
             }
 
-            void* atomic_ptr_base_t::do_cas(volatile void *ptr, void *cmp, void *val)
+            void* atomic_ptr_base_t::do_cas(void *cmp, void *val)
             {
                 void *old;
                 __asm__ volatile (
                     "lock; cmpxchg %2, %3"
-                    : "=a" (old), "=m" (ptr)
-                    : "r" (val), "m" (ptr), "0" (cmp)
+                    : "=a" (old), "=m" (ptr_)
+                    : "r" (val), "m" (ptr_), "0" (cmp)
                     : "cc");
                 return old;
             }
@@ -97,19 +97,106 @@ namespace cxx {
         }
 
         namespace detail {
-            void* atomic_ptr_base_t::do_xchg(volatile void *ptr, void *val)
+            void* atomic_ptr_base_t::do_xchg(void *val)
             {
-                return InterlockedExchangePointer((PVOID* )&ptr, val);
+                return InterlockedExchangePointer((PVOID* )&ptr_, val);
             }
 
-            void* atomic_ptr_base_t::do_cas(volatile void *ptr, void *cmp, void *val)
+            void* atomic_ptr_base_t::do_cas(void *cmp, void *val)
             {
-                return InterlockedCompareExchangePointer((volatile PVOID* )&ptr, val, cmp);
+                return InterlockedCompareExchangePointer((volatile PVOID* )&ptr_, val, cmp);
             }
         }
 
     }
 }
+
+#elif defined(__ARM_ARCH_7A__) && defined(__GNUC__)
+namespace cxx {
+    namespace sys {
+
+        atomic_t::atomic_t(long v) : value_(v)
+        {
+        }
+
+        long atomic_t::operator++()
+        {
+            long old, flag, tmp;
+            __asm__ volatile (
+                "       dmb     sy\n\t"
+                "1:     ldrex   %0, [%5]\n\t"
+                "       add     %2, %0, %4\n\t"
+                "       strex   %1, %2, [%5]\n\t"
+                "       teq     %1, #0\n\t"
+                "       bne     1b\n\t"
+                "       dmb     sy\n\t"
+                : "=&r"(old), "=&r"(flag), "=&r"(tmp), "+Qo"(value_)
+                : "Ir"(1), "r"(&value_)
+                : "cc");
+            return old;
+        }
+
+        long atomic_t::operator--()
+        {
+            long old, flag, tmp;
+            __asm__ volatile (
+                "       dmb     sy\n\t"
+                "1:     ldrex   %0, [%5]\n\t"
+                "       sub     %2, %0, %4\n\t"
+                "       strex   %1, %2, [%5]\n\t"
+                "       teq     %1, #0\n\t"
+                "       bne     1b\n\t"
+                "       dmb     sy\n\t"
+                : "=&r"(old), "=&r"(flag), "=&r"(tmp), "+Qo"(value_)
+                : "Ir"(1), "r"(&value_)
+                : "cc");
+            return old;
+        }
+
+        atomic_t::operator long() const
+        {
+            return value_;
+        }
+
+        namespace detail {
+            void* atomic_ptr_base_t::do_xchg(void* val)
+            {
+                void* old;
+                unsigned int flag;
+                __asm__ volatile (
+                    "       dmb     sy\n\t"
+                    "1:     ldrex   %1, [%3]\n\t"
+                    "       strex   %0, %4, [%3]\n\t"
+                    "       teq     %0, #0\n\t"
+                    "       bne     1b\n\t"
+                    "       dmb     sy\n\t"
+                    : "=&r"(flag), "=&r"(old), "+Qo"(ptr_)
+                    : "r"(&ptr_), "r"(val)
+                    : "cc");
+                return old;
+            }
+
+            void* atomic_ptr_base_t::do_cas(void* cmp, void* val)
+            {
+                void *old;
+                unsigned int flag;
+                __asm__ volatile (
+                    "       dmb     sy\n\t"
+                    "1:     ldrex   %1, [%3]\n\t"
+                    "       mov     %0, #0\n\t"
+                    "       teq     %1, %4\n\t"
+                    "       it      eq\n\t"
+                    "       strexeq %0, %5, [%3]\n\t"
+                    "       teq     %0, #0\n\t"
+                    "       bne     1b\n\t"
+                    "       dmb     sy\n\t"
+                    : "=&r"(flag), "=&r"(old), "+Qo"(ptr_)
+                    : "r"(&ptr_), "r"(cmp_), "r"(val_)
+                    : "cc");
+                return old;
+            }
+        }
+    }
 
 #elif defined(__GLIBCPP__) || defined(__GLIBCXX__)
 // gcc

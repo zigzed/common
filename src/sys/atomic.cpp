@@ -44,24 +44,22 @@ namespace cxx {
         namespace detail {
             void* atomic_ptr_base_t::do_xchg(volatile void *ptr, void *val)
             {
-                void* old;
+                 void *old;
                 __asm__ volatile (
                     "lock; xchg %0, %2"
                     : "=r" (old), "=m" (ptr)
-                    : "m" (ptr), "0" (val)
-                    );
+                    : "m" (ptr), "0" (val));
                 return old;
             }
 
             void* atomic_ptr_base_t::do_cas(volatile void *ptr, void *cmp, void *val)
             {
-                void* old;
+                void *old;
                 __asm__ volatile (
                     "lock; cmpxchg %2, %3"
                     : "=a" (old), "=m" (ptr)
                     : "r" (val), "m" (ptr), "0" (cmp)
-                    : "cc"
-                );
+                    : "cc");
                 return old;
             }
         }

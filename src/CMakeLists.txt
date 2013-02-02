@@ -77,6 +77,7 @@ set(COMMON_SRC
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h
+    ../common/alg/pipe.h
     ../common/cfg/properties.h cfg/properties.cpp
     ../common/cfg/json/json-forwards.h ../common/cfg/json/json.h
     cfg/json/jsoncpp.cpp

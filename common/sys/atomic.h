@@ -38,17 +38,17 @@ namespace cxx {
              * to 'val' value, and the old value is returned
              */
             T*      xchg(T* val) {
-                return (T* )do_xchg(&ptr_, val);
+                return (T* )do_xchg(ptr_, val);
             }
             /** perform atomic 'compare and swap' operation. pointer is compared
              * to 'cmp' argument and if they are equal, it's value set to 'val',
              * old value of the pointer is returned
              */
             T*      cas(T* cmp, T* val) {
-                return (T* )do_cas(&ptr_, cmp, val);
+                return (T* )do_cas(ptr_, cmp, val);
             }
         private:
-            volatile T* ptr_;
+            volatile T*             ptr_;
 
             atomic_ptr_t(const atomic_ptr_t& );
             atomic_ptr_t& operator= (const atomic_ptr_t& );

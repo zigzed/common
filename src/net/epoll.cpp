@@ -111,6 +111,11 @@ namespace cxx {
             retired_.clear();
         }
 
+        void epoll::destroy()
+        {
+            delete this;
+        }
+
     }
 }
 

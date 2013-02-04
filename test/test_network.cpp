@@ -4,6 +4,7 @@
 #include "common/gtest/gtest.h"
 #include "common/net/tcp_address.h"
 #include "common/net/poller.h"
+#include <iomanip>
 
 TEST(NET, tcp_address)
 {
@@ -56,8 +57,12 @@ public:
     void on_readable() {}
     void on_writable() {}
     void on_expire(int id) {
-        assert(id == 1);
-        p_->stop();
+        cxx::datetime ts(cxx::datetime::now());
+        cxx::datetime::calendar c(ts);
+        std::cout << "timer: " << id << " expired: " << c.hour << ":" << c.min
+                  << ":" << c.sec << "." << std::setw(3) << std::setfill('0') << c.msec << "\n";
+        if(id == 2)
+            p_->stop();
     }
 private:
     cxx::net::poller* p_;
@@ -68,9 +73,11 @@ TEST(NET, poller_create)
     cxx::net::poller* p = cxx::net::poller::create();
     PollerTimer timer(p);
     p->add_timer(1, 1000, &timer);
+    p->add_timer(2, 1500, &timer);
     p->start();
-    p->stop();
-    delete p;
+
+    cxx::sys::threadcontrol::sleep(2000);
+    p->destroy();
 }
 
 int main(int argc, char* argv[])

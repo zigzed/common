@@ -132,5 +132,10 @@ namespace cxx {
             }
         }
 
+        void select::destroy()
+        {
+            delete this;
+        }
+
     }
 }

@@ -36,7 +36,7 @@ namespace cxx {
 
             static poller* create();
 
-            virtual ~poller();
+
 
             /** add a timeout to expire in 'timeout' milliseconds. after the
              * expiration, event_sink::on_expire() will be called with timer
@@ -65,8 +65,10 @@ namespace cxx {
             virtual void        del_fd(handle_t handle, readable r) = 0;
             /** unregister 'handle' to writable event */
             virtual void        del_fd(handle_t handle, writable w) = 0;
+            virtual void        destroy() = 0;
         protected:
             poller();
+            virtual ~poller();
 
             /** called be poller implementations to manage the load */
             void adj_loads(int amount);

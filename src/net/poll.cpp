@@ -113,6 +113,11 @@ namespace cxx {
             }
         }
 
+        void poll::destroy()
+        {
+            delete this;
+        }
+
     }
 }
 

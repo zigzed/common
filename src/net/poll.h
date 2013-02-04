@@ -25,6 +25,7 @@ namespace cxx {
             void     del_fd(handle_t handle, writable w);
         private:
             void     do_task(int timeout);
+            void     destroy();
 
             struct poll_entry {
                 fd_t        id;

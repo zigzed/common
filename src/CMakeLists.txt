@@ -96,6 +96,7 @@ set(COMMON_SRC
     net/devpoll.h net/devpoll.cpp
     net/kqueue.h net/kqueue.cpp
     ../common/net/tcp_address.h net/tcp_address.cpp
+    ../common/net/helper.h net/helper.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

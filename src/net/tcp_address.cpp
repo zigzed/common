@@ -237,5 +237,119 @@ namespace cxx {
             return addr_.generic.sa_family;
         }
 
+        //----------------------------------------------------------------------
+        tcp_address_mask::tcp_address_mask()
+            : mask_(-1)
+        {
+        }
+
+        int tcp_address_mask::getmask() const
+        {
+            return mask_;
+        }
+
+        bool tcp_address_mask::resolve(const char *name, bool ipv4)
+        {
+            std::string addr_str, mask_str;
+            const char* delimiter = strrchr(name, '/');
+            if(delimiter != NULL) {
+                addr_str.assign(name, delimiter - name);
+                mask_str.assign(delimiter + 1);
+                if(mask_str.empty()) {
+                    return false;
+                }
+            }
+            else {
+                addr_str.assign(name);
+            }
+
+            if(!tcp_address::resolve_hostname(addr_str.c_str(), ipv4)) {
+                return false;
+            }
+            if(mask_str.empty()) {
+                if(addr_.generic.sa_family == AF_INET6)
+                    mask_ = 128;
+                else
+                    mask_ = 32;
+            }
+            else if (mask_str == "0") {
+                    mask_ = 0;
+            }
+            else {
+                int mask = atoi(mask_str.c_str());
+                if(mask < 1 || (addr_.generic.sa_family == AF_INET6 && mask > 128)
+                        || (addr_.generic.sa_family == AF_INET && mask > 32)) {
+                    return false;
+                }
+                mask_ = mask;
+            }
+            return true;
+        }
+
+        std::string tcp_address_mask::string() const
+        {
+            if(addr_.generic.sa_family != AF_INET && addr_.generic.sa_family != AF_INET6)
+                return std::string();
+
+            if(mask_ == -1)
+                return std::string();
+
+            char hbuf[NI_MAXHOST];
+            int rc = getnameinfo(address(), addrlen(), hbuf, sizeof(hbuf), NULL, 0, NI_NUMERICHOST);
+            if(rc != 0) {
+                return std::string();
+            }
+
+            if(addr_.generic.sa_family == AF_INET6) {
+                std::stringstream s;
+                s << "[" << hbuf << "]/" << mask_;
+                return s.str();
+            }
+            else {
+                std::stringstream s;
+                s << hbuf << "/" << mask_;
+                return s.str();
+            }
+            return std::string();
+        }
+
+        bool tcp_address_mask::matched(const sockaddr *ss, socklen_t len) const
+        {
+            assert(mask_ != -1 && ss != NULL && len >= sizeof(sockaddr));
+            if(ss->sa_family != addr_.generic.sa_family)
+                return false;
+
+            if(mask_ > 0) {
+                int mask;
+                unsigned char* lhs, *rhs;
+                if(ss->sa_family == AF_INET6) {
+                    assert(len == sizeof(sockaddr_in6));
+                    rhs = (unsigned char* )&(((sockaddr_in6* )ss)->sin6_addr);
+                    lhs = (unsigned char* )&addr_.ipv6.sin6_addr;
+                    mask = sizeof(in6_addr) * 8;
+                }
+                else {
+                    assert(len == sizeof(sockaddr_in));
+                    rhs = (unsigned char* )&(((sockaddr_in* )ss)->sin_addr);
+                    lhs = (unsigned char* )&addr_.ipv4.sin_addr;
+                    mask = sizeof(in_addr) * 8;
+                }
+
+                if(mask_ < mask)
+                    mask = mask_;
+
+                int bytes = mask / 8;
+                if(memcmp(rhs, lhs, bytes) != 0)
+                    return false;
+
+                unsigned char last_byte_bits = (0xFFU << (8 - (mask % 8))) & 0xFFU;
+                if(last_byte_bits) {
+                    if((rhs[bytes] & last_byte_bits) != (lhs[bytes] & last_byte_bits))
+                        return false;
+                }
+            }
+            return true;
+        }
+
     }
 }

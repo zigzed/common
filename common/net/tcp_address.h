@@ -27,7 +27,7 @@ namespace cxx {
             sa_family_t         family() const;
             const sockaddr*     address() const;
             socklen_t           addrlen() const;
-        private:
+        protected:
             bool    resolve_nic_name (const char* nic, bool ipv4);
             bool    resolve_interface(const char* itf, bool ipv4);
             bool    resolve_hostname (const char* hst, bool ipv4);

@@ -9,28 +9,46 @@ TEST(NET, tcp_address)
 {
     cxx::net::tcp_address addr;
     addr.resolve("127.0.0.1:8000", true, true);
-    std::cout << "address: " << addr.string() << "\n";
+    std::cout << "address1: " << addr.string() << "\n";
 
     addr.resolve("*:8000", true, true);
-    std::cout << "address: " << addr.string() << "\n";
+    std::cout << "address2: " << addr.string() << "\n";
 
     addr.resolve("eth0:8000", true, true);
-    std::cout << "address: " << addr.string() << "\n";
+    std::cout << "address3: " << addr.string() << "\n";
 
     addr.resolve("eth0:8000", true, false);
-    std::cout << "address: " << addr.string() << "\n";
+    std::cout << "address4: " << addr.string() << "\n";
 
     addr.resolve("eth0:8000", false, false);
-    std::cout << "address: " << addr.string() << "\n";
+    std::cout << "address5: " << addr.string() << "\n";
 
     addr.resolve("wlan0:8000", true, true);
-    std::cout << "address: " << addr.string() << "\n";
+    std::cout << "address6: " << addr.string() << "\n";
 }
 
 TEST(NET, tcp_address_mask)
 {
+    cxx::net::tcp_address_mask addr;
+    addr.resolve("127.0.0.1/24", true);
+    std::cout << "address1: " << addr.string() << "\n";
 
+    addr.resolve("*/16", true);
+    std::cout << "address2: " << addr.string() << "\n";
+
+    addr.resolve("eth0:8000", true);
+    std::cout << "address3: " << addr.string() << "\n";
+
+    addr.resolve("eth0:8000", false);
+    std::cout << "address4: " << addr.string() << "\n";
+
+    addr.resolve("eth0:8000", false);
+    std::cout << "address5: " << addr.string() << "\n";
+
+    addr.resolve("wlan0:8000", true);
+    std::cout << "address6: " << addr.string() << "\n";
 }
+
 
 class PollerTimer : public cxx::net::event_sink {
 public:
@@ -38,6 +56,7 @@ public:
     void on_readable() {}
     void on_writable() {}
     void on_expire(int id) {
+        assert(id == 1);
         p_->stop();
     }
 private:

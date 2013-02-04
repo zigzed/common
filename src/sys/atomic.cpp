@@ -36,6 +36,17 @@ namespace cxx {
             return atomic_exchange_and_add(&value_, -1) - 1;
         }
 
+        long atomic_t::add(long inc)
+        {
+            return atomic_exchange_and_add(&value_, inc);
+        }
+
+        long atomic_t::sub(long dec)
+        {
+            dec *= -1;
+            return atomic_exchange_and_add(&value_, dec);
+        }
+
         atomic_t::operator long() const
         {
             return atomic_exchange_and_add(&value_, 0);
@@ -89,6 +100,17 @@ namespace cxx {
         long atomic_t::operator--()
         {
             return InterlockedDecrement(&value_);
+        }
+
+        long atomic_t::add(int inc)
+        {
+            return InterlockedExchangeAdd((LONG* )&value_, inc);
+        }
+
+        long atomic_t::sub(int dec)
+        {
+            dec *= -1;
+            return InterlockedExchangeAdd((LONG* )&value_, dec);
         }
 
         atomic_t::operator long() const

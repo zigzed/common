@@ -12,6 +12,10 @@ namespace cxx {
             explicit atomic_t(long val);
             long operator++();
             long operator--();
+            /** atomic addition. return the old value */
+            long add(long inc);
+            /** atomic subtraction. return the old value */
+            long sub(long dec);
             operator long() const;
         private:
             atomic_t(const atomic_t& rhs);

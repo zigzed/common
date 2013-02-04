@@ -89,6 +89,13 @@ set(COMMON_SRC
     log/log.cpp log/loginfo.h
     ../common/sql/sqlite++.h sql/sqlite++.cpp
     sql/sqlite/sqlite3.h sql/sqlite/sqlite3ext.h sql/sqlite/sqlite3.c
+    ../common/net/poller.h net/poller.cpp
+    net/select.h net/select.cpp
+    net/poll.h net/poll.cpp
+    net/epoll.h net/epoll.cpp
+    net/devpoll.h net/devpoll.cpp
+    net/kqueue.h net/kqueue.cpp
+    ../common/net/tcp_address.h net/tcp_address.cpp
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

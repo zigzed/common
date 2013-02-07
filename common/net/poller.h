@@ -7,6 +7,7 @@
 #include "common/sys/atomic.h"
 #include "common/sys/threads.h"
 #include "common/datetime.h"
+#include "common/sys/mutex.h"
 
 namespace cxx {
     namespace net {
@@ -92,6 +93,7 @@ namespace cxx {
 
             typedef std::multimap<cxx::datetime, timer_info >   timers_t;
 
+            cxx::sys::plainmutex mutex_;
             cxx::sys::atomic_t  payload_;
             timers_t            expires_;
             cxx::sys::thread    threads_;

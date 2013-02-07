@@ -4,6 +4,7 @@
 #define CXX_ALG_PIPE_H
 #include "common/config.h"
 #include "common/sys/atomic.h"
+#include "common/sys/error.h"
 
 namespace cxx {
     namespace alg {
@@ -160,7 +161,7 @@ namespace cxx {
              */
             inline bool probe(bool (*fn)(T& )) {
                 bool rc = check_read();
-                assert(rc);
+                ENFORCE(rc);
 
                 return (*fn)(queue_.front());
            }
@@ -198,7 +199,7 @@ namespace cxx {
             {
                 memset(&stat_, 0, sizeof(stat_));
                 begin_ = (chunk_t* )malloc(sizeof(chunk_t));
-                assert(begin_);
+                ENFORCE(begin_);
                 end_ = begin_;
 
                 stat_.acq++;
@@ -258,7 +259,7 @@ namespace cxx {
                 }
                 else {
                     end_->next  = (chunk_t* )malloc(sizeof(chunk_t));
-                    assert(end_->next);
+                    ENFORCE(end_->next);
                     end_->next->prev = end_;
 
                     stat_.acq++;

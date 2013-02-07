@@ -1,3 +1,5 @@
+/** Copyright (C) 2013 wilburlang@gmail.com
+ */
 #ifndef	CXX_SYS_LOCKER_H
 #define	CXX_SYS_LOCKER_H
 #include <cassert>

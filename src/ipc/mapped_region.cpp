@@ -1,8 +1,8 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
 #include "common/ipc/mmap.h"
+#include "common/sys/error.h"
 #if     defined(OS_LINUX)
-    #include <errno.h>
     #include <unistd.h>
     #include <sys/mman.h>
 #elif   defined(OS_WINDOWS)
@@ -90,7 +90,7 @@ namespace cxx {
             void* base = mmap(buffer, extra_offset + length, prots, flags,
                               handle_, offset - extra_offset);
             if(base == MAP_FAILED) {
-                int errcode = errno;
+                int errcode = sys::err::get();
                 close();
                 throw ipc_error("mmap failed", errcode);
             }

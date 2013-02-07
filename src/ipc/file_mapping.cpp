@@ -1,11 +1,11 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
 #include "common/ipc/mmap.h"
+#include "common/sys/error.h"
 #if     defined(OS_LINUX)
     #include <sys/stat.h>   // for fstat
     #include <unistd.h>     // for unlink
     #include <fcntl.h>      // for open
-    #include <errno.h>
 #elif   defined(OS_WINDOWS)
 #endif
 
@@ -40,7 +40,7 @@ namespace cxx {
             }
             handle_ = open(filename, flags, 0644);
             if(handle_ == invalid_handle) {
-                throw ipc_error("can't open file for mapping", errno);
+                throw ipc_error("can't open file for mapping", sys::err::get());
             }
         }
 
@@ -80,7 +80,7 @@ namespace cxx {
         {
             struct ::stat   buf;
             if(0 != fstat(handle_, &buf)) {
-                throw ipc_error("can't stat file size", errno);
+                throw ipc_error("can't stat file size", sys::err::get());
             }
             return buf.st_size;
         }
@@ -89,7 +89,7 @@ namespace cxx {
         {
             offset_t cur = size();
             if(0 != ftruncate(handle_, len)) {
-                throw ipc_error("can't truncate file size", errno);
+                throw ipc_error("can't truncate file size", sys::err::get());
             }
             return cur;
         }

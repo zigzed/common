@@ -4,15 +4,12 @@
 #define	CXX_SYS_MUTEX_H
 #include "common/config.h"
 #include "common/sys/locker.h"
-#if defined(OS_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#else
-#include <sys/time.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <semaphore.h>
+#include "common/sys/error.h"
+#ifndef OS_WINDOWS
+    #include <sys/time.h>
+    #include <fcntl.h>
+    #include <pthread.h>
+    #include <semaphore.h>
 #endif
 
 namespace cxx {

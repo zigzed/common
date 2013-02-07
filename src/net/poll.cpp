@@ -1,7 +1,8 @@
+/** Copyright (C) 2013 wilburlang@gmail.com
+ */
 #include "poll.h"
-
+#include "common/sys/error.h"
 #if defined(OS_QNXNTO) || defined(OS_AIX) || defined(OS_LINUX)
-#include <errno.h>
 #include <cassert>
 
 namespace cxx {
@@ -81,7 +82,7 @@ namespace cxx {
             if(rc == 0)
                 return;
             if(rc < 0)
-                assert(errno == EINTR);
+                assert(sys::err::get() == EINTR);
 
             for(int i = 0; i < pollfd_.size(); ++i) {
                 if(pollfd_[i].fd == -1)

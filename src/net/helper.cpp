@@ -51,6 +51,17 @@ namespace cxx {
                 return s;
             }
 
+            void closesocket(fd_t& s)
+            {
+#ifndef OS_WINDOWS
+                int rc = ::close(s);
+                ENFORCE(rc == 0)(rc)(cxx::sys::err::get());
+#else
+                ::closesocket(s);
+#endif
+                s = -1;
+            }
+
         }
 
         namespace tcp {
@@ -69,6 +80,25 @@ namespace cxx {
                 int rc = setsockopt(s, IPPROTO_TCP, TCP_NODELACK, (char* )&nodelack, sizeof(nodelack));
                 assert(rc != -1);
 #endif
+            }
+
+            void setsndbuf(fd_t s, int size)
+            {
+                int rc = setsockopt(s, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
+                assert(rc != -1);
+            }
+
+            void setrcvbuf(fd_t s, int size)
+            {
+                int rc = setsockopt(s, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+                assert(rc != -1);
+            }
+
+            void reuseaddr(fd_t s)
+            {
+                int reuse = 1;
+                int rc = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+                assert(rc != -1);
             }
 
         }

@@ -19,6 +19,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+    add_definitions(-DDEBUG)
+endif(${CMAKE_BUILD_TYPE} MATCHES Debug)
+
 add_definitions(-DSQLITE_ENABLE_FTS3)
 add_definitions(-DSQLITE_ENABLE_FTS3_PARENTHESIS)
 add_definitions(-DSQLITE_ENABLE_ICU)
@@ -74,6 +78,7 @@ set(COMMON_SRC
     ../common/fastdelegate.h ../common/fastdelegatebind.h
     ../common/sys/threads.h sys/threads.cpp
     ../common/sys/atomic.h sys/atomic.cpp
+    ../common/sys/error.h sys/error.cpp
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h
@@ -97,6 +102,12 @@ set(COMMON_SRC
     net/kqueue.h net/kqueue.cpp
     ../common/net/tcp_address.h net/tcp_address.cpp
     ../common/net/helper.h net/helper.cpp
+    ../common/net/iothread.h net/iothread.cpp
+    ../common/net/reactor.h net/reactor.cpp
+    ../common/net/tcp_connector.h net/tcp_connector.cpp
+    ../common/net/tcp_listener.h net/tcp_listener.cpp
+    ../common/net/tcp_connection.h net/tcp_connection.cpp
+    ../common/net/options.h
     )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

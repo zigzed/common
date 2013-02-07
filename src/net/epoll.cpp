@@ -1,9 +1,9 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
 #include "epoll.h"
+#include "common/sys/error.h"
 #ifdef  OS_LINUX
 #include <unistd.h>
-#include <cassert>
 
 namespace cxx {
     namespace net {
@@ -32,7 +32,7 @@ namespace cxx {
             pe->cb          = sink;
 
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &pe->ev);
-            assert(rc != -1);
+            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
 
             adj_loads(1);
             return pe;
@@ -42,7 +42,7 @@ namespace cxx {
         {
             epoll_entry* pe = (epoll_entry* )handle;
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_DEL, pe->fd, &pe->ev);
-            assert(rc != -1);
+            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
             pe->fd = -1;
             retired_.push_back(pe);
 
@@ -54,7 +54,7 @@ namespace cxx {
             epoll_entry* pe = (epoll_entry* )handle;
             pe->ev.events |= EPOLLIN;
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_MOD, pe->fd, &pe->ev);
-            assert(rc != -1);
+            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
         }
 
         void epoll::add_fd(handle_t handle, writable w)
@@ -62,7 +62,7 @@ namespace cxx {
             epoll_entry* pe = (epoll_entry* )handle;
             pe->ev.events |= EPOLLOUT;
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_MOD, pe->fd, &pe->ev);
-            assert(rc != -1);
+            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
         }
 
         void epoll::del_fd(handle_t handle, readable r)
@@ -70,7 +70,7 @@ namespace cxx {
             epoll_entry* pe = (epoll_entry* )handle;
             pe->ev.events &= ~((short)EPOLLIN);
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_MOD, pe->fd, &pe->ev);
-            assert(rc != -1);
+            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
         }
 
         void epoll::del_fd(handle_t handle, writable r)
@@ -78,7 +78,7 @@ namespace cxx {
             epoll_entry* pe = (epoll_entry* )handle;
             pe->ev.events &= ~((short)EPOLLOUT);
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_MOD, pe->fd, &pe->ev);
-            assert(rc != -1);
+            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
         }
 
         void epoll::do_task(int timeout)

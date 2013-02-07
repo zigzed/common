@@ -1,6 +1,7 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
 #include "common/sys/event.h"
+#include "common/sys/error.h"
 #if     defined(OS_LINUX)
     #include <linux/version.h>
     #include <features.h>
@@ -20,7 +21,6 @@
     #include <unistd.h>
     #include <fcntl.h>
     #include <poll.h>
-    #include <errno.h>
 #endif
 #include <cassert>
 
@@ -100,7 +100,7 @@ namespace cxx {
             fds.events  = POLLIN;
             int rc = poll(&fds, 1, timeout);
             if(rc < 0) {
-                assert(errno == EINTR);
+                assert(sys::err::get() == EINTR);
                 return false;
             }
             else if(rc == 0) {

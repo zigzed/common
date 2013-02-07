@@ -1,11 +1,11 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
 #include "common/ipc/mmap.h"
+#include "common/sys/error.h"
 #if     defined(OS_LINUX)
     #include <sys/mman.h>
     #include <sys/stat.h>
     #include <fcntl.h>
-    #include <errno.h>
     #include <unistd.h>
 #elif   defined(OS_WINDOWS)
 #endif
@@ -42,14 +42,14 @@ namespace cxx {
                     fchmod(handle_, 0644);
                     break;
                 }
-                else if(errno == EEXIST) {
-                    if((handle_ = shm_open(name, oflag, 0644)) >= 0 || errno != ENOENT) {
+                else if(sys::err::get() == EEXIST) {
+                    if((handle_ = shm_open(name, oflag, 0644)) >= 0 || sys::err::get() != ENOENT) {
                         break;
                     }
                 }
             }
             if(handle_ == invalid_handle) {
-                int errcode = errno;
+                int errcode = sys::err::get();
                 close();
                 throw ipc_error("can't open shm for mapping", errcode);
             }
@@ -59,7 +59,7 @@ namespace cxx {
         {
             struct ::stat   buf;
             if(0 != fstat(handle_, &buf)) {
-                throw ipc_error("can't stat shm size", errno);
+                throw ipc_error("can't stat shm size", sys::err::get());
             }
             return buf.st_size;
         }
@@ -68,7 +68,7 @@ namespace cxx {
         {
             offset_t cur = size();
             if(0 != ftruncate(handle_, len)) {
-                throw ipc_error("can't truncate shm size", errno);
+                throw ipc_error("can't truncate shm size", sys::err::get());
             }
             return cur;
         }

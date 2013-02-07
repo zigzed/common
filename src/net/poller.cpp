@@ -83,11 +83,14 @@ namespace cxx {
         {
             cxx::datetime time = cxx::datetime::now() + cxx::datetimespan(0, 0, 0, 0, timeout);
             timer_info    info = { id, sink };
+
+            cxx::sys::plainmutex::scopelock lock(mutex_);
             expires_.insert(std::make_pair(time, info));
         }
 
         void poller::del_timer(int id, event_sink *sink)
         {
+            cxx::sys::plainmutex::scopelock lock(mutex_);
             // time complexity of 'del_timer' is O(n). because it used rarely.
             for(timers_t::iterator it = expires_.begin(); it != expires_.end(); ++it) {
                 if(it->second.id == id && it->second.sink == sink) {
@@ -102,16 +105,32 @@ namespace cxx {
                 return 0;
             }
 
+            timers_t backup;
+            {
+                cxx::sys::plainmutex::scopelock lock(mutex_);
+                backup.swap(expires_);
+            }
+
             cxx::datetime current = cxx::datetime::now();
-            timers_t::iterator it = expires_.begin();
-            while(it != expires_.end()) {
+            timers_t::iterator it = backup.begin();
+            while(it != backup.end()) {
                 // std::multimap is sorted, so we can stop checking the subsequent
                 // and return the time to wait for the next one.
-                if(it->first > current)
+                if(it->first > current) {
+                    {
+                        cxx::sys::plainmutex::scopelock lock(mutex_);
+                        expires_.insert(backup.begin(), backup.end());
+                    }
                     return (it->first - current).getTotalMilliSeconds();
+                }
 
                 it->second.sink->on_expire(it->second.id);
-                expires_.erase(it++);
+                backup.erase(it++);
+            }
+
+            {
+                cxx::sys::plainmutex::scopelock lock(mutex_);
+                expires_.insert(backup.begin(), backup.end());
             }
 
             return 0;

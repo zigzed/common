@@ -47,7 +47,7 @@ namespace cxx {
             conn_cb_ = NULL;
         }
 
-        bool tcp_listener::listen(int backlog)
+        bool tcp_listener::listen()
         {
             socket_ = ip::opensocket(address_.family(), SOCK_STREAM, IPPROTO_TCP);
             if(socket_ == -1) {
@@ -66,7 +66,7 @@ namespace cxx {
                 return false;
             }
 
-            rc = ::listen(socket_, backlog);
+            rc = ::listen(socket_, option_.backlog);
             if(rc != 0) {
                 ip::closesocket(socket_);
                 return false;

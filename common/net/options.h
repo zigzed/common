@@ -12,6 +12,8 @@ namespace cxx {
         struct options {
             typedef std::vector<tcp_address_mask >  mask_t;
 
+            /** tcp latency or thoughput */
+            bool    nodelay;
             /** send buffer size */
             int     sndbuf;
             /** recv buffer size */
@@ -27,7 +29,7 @@ namespace cxx {
              */
             mask_t  filter;
 
-            options() : sndbuf(0), rcvbuf(0), conivl(1000), backlog(10) {}
+            options() : nodelay(false), sndbuf(0), rcvbuf(0), conivl(1000), backlog(10) {}
         };
     }
 }

@@ -16,7 +16,7 @@ namespace cxx {
               option_(opt), conncb_(NULL)
         {
             endpoint_ = addr.string();
-            doconnect();
+            reconnect();
         }
 
         tcp_connector::~tcp_connector()
@@ -83,7 +83,8 @@ namespace cxx {
         void tcp_connector::reconnect()
         {
             if(option_.conivl > 0) {
-                poller_->add_timer(reconnect_timer_id, option_.conivl, this);
+                poller* p = reactor_->choose()->get_poller();
+                p->add_timer(reconnect_timer_id, option_.conivl, this);
             }
         }
 

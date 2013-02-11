@@ -15,7 +15,7 @@ namespace cxx {
 
         io_thread::~io_thread()
         {
-            stop();
+            poller_->stop();
             poller_->destroy();
         }
 
@@ -27,11 +27,11 @@ namespace cxx {
         void io_thread::stop()
         {
             events_.send();
-            poller_->stop();
         }
 
         void io_thread::on_readable()
         {
+            poller_->del_fd(hevent_, poller::readable());
             poller_->del_fd(hevent_);
             events_.recv();
             poller_->stop();

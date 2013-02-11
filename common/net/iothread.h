@@ -9,7 +9,7 @@
 namespace cxx {
     namespace net {
 
-        class io_thread : public event_sink {
+        class io_thread : public poller_event {
         public:
             io_thread();
             ~io_thread();

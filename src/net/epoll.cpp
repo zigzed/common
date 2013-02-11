@@ -23,7 +23,7 @@ namespace cxx {
             }
         }
 
-        poller::handle_t epoll::add_fd(fd_t fd, event_sink *sink)
+        poller::handle_t epoll::add_fd(fd_t fd, poller_event *sink)
         {
             epoll_entry* pe = new epoll_entry();
             pe->fd          = fd;
@@ -44,7 +44,10 @@ namespace cxx {
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_DEL, pe->fd, &pe->ev);
             ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
             pe->fd = -1;
-            retired_.push_back(pe);
+            {
+                cxx::sys::plainmutex::scopelock lock(mutex_);
+                retired_.push_back(pe);
+            }
 
             adj_loads(-1);
         }
@@ -105,10 +108,13 @@ namespace cxx {
                     pe->cb->on_writable();
             }
 
-            for(size_t i = 0; i < retired_.size(); ++i) {
-                delete retired_[i];
+            {
+                cxx::sys::plainmutex::scopelock lock(mutex_);
+                for(size_t i = 0; i < retired_.size(); ++i) {
+                    delete retired_[i];
+                }
+                retired_.clear();
             }
-            retired_.clear();
         }
 
         void epoll::destroy()

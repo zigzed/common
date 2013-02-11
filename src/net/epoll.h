@@ -6,6 +6,7 @@
 
 #ifdef  OS_LINUX
 #include "common/net/poller.h"
+#include "common/sys/mutex.h"
 #include <vector>
 #include <sys/epoll.h>
 
@@ -17,7 +18,7 @@ namespace cxx {
             epoll();
             ~epoll();
 
-            handle_t add_fd(fd_t fd, event_sink *sink);
+            handle_t add_fd(fd_t fd, poller_event *sink);
             void     del_fd(handle_t handle);
             void     add_fd(handle_t handle, readable r);
             void     add_fd(handle_t handle, writable w);
@@ -28,15 +29,16 @@ namespace cxx {
             void     destroy();
 
             struct epoll_entry {
-                fd_t        fd;
-                epoll_event ev;
-                event_sink* cb;
+                fd_t            fd;
+                epoll_event     ev;
+                poller_event*   cb;
             };
 
             typedef std::vector<epoll_entry* >  retired_t;
             /** handle for the epoll function */
             fd_t        epollfd_;
             retired_t   retired_;
+            cxx::sys::plainmutex    mutex_;
         };
 
     }

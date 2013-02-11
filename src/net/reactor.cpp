@@ -18,7 +18,6 @@ namespace cxx {
         {
             for(int i = 0; i < threads_.size(); ++i) {
                 io_thread* thread = threads_[i];
-                thread->stop();
                 delete thread;
             }
         }

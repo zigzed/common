@@ -20,9 +20,9 @@ namespace cxx {
 #error unknown platform
 #endif
 
-        class event_sink {
+        class poller_event {
         public:
-            virtual ~event_sink() {}
+            virtual ~poller_event() {}
 
             virtual void on_readable() = 0;
             virtual void on_writable() = 0;
@@ -40,12 +40,12 @@ namespace cxx {
 
 
             /** add a timeout to expire in 'timeout' milliseconds. after the
-             * expiration, event_sink::on_expire() will be called with timer
+             * expiration, poller_event::on_expire() will be called with timer
              * identifier 'id'
              */
-            void add_timer(int id, int timeout, event_sink* sink);
+            void add_timer(int id, int timeout, poller_event* sink);
             /** cancel a timer */
-            void del_timer(int id, event_sink* sink);
+            void del_timer(int id, poller_event* sink);
             /** default timeout to expire when no 'timer' registered. */
             void def_timer(int timeout);
             /** return current load of the poller */
@@ -55,7 +55,7 @@ namespace cxx {
             void stop ();
 
             /** add 'fd' to the poller */
-            virtual handle_t    add_fd(fd_t fd, event_sink* sink) = 0;
+            virtual handle_t    add_fd(fd_t fd, poller_event* sink) = 0;
             /** remove 'fd' from the poller */
             virtual void        del_fd(handle_t handle) = 0;
             /** register 'handle' to readable event */
@@ -87,8 +87,8 @@ namespace cxx {
             poller& operator= (const poller& rhs);
 
             struct timer_info {
-                int         id;
-                event_sink* sink;
+                int             id;
+                poller_event* sink;
             };
 
             typedef std::multimap<cxx::datetime, timer_info >   timers_t;

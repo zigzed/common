@@ -17,6 +17,10 @@ namespace cxx {
         {
             assert(socket_ != -1);
             ip::unblocking(socket_);
+            if(option_.nodelay) {
+                tcp::no_delack(socket_);
+                tcp::no_delays(socket_);
+            }
             if(option_.sndbuf) {
                 tcp::setsndbuf(socket_, option_.sndbuf);
             }
@@ -38,7 +42,9 @@ namespace cxx {
 
         void tcp_connection::close()
         {
-            ip::closesocket(socket_);
+            if(socket_ != -1) {
+                ip::closesocket(socket_);
+            }
         }
 
         int tcp_connection::send(const char *data, int size)

@@ -22,7 +22,7 @@ namespace cxx {
             select();
             ~select();
 
-            handle_t add_fd(fd_t fd, event_sink *sink);
+            handle_t add_fd(fd_t fd, poller_event *sink);
             void     del_fd(handle_t handle);
             void     add_fd(handle_t handle, readable r);
             void     add_fd(handle_t handle, writable w);
@@ -30,8 +30,8 @@ namespace cxx {
             void     del_fd(handle_t handle, writable w);
         private:
             struct select_entry {
-                fd_t        fd;
-                event_sink* cb;
+                fd_t            fd;
+                poller_event*   cb;
             };
             typedef std::vector<select_entry >  fdset_t;
 

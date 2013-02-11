@@ -17,7 +17,7 @@ namespace cxx {
             poll();
             ~poll();
 
-            handle_t add_fd(fd_t fd, event_sink *sink);
+            handle_t add_fd(fd_t fd, poller_event *sink);
             void     del_fd(handle_t handle);
             void     add_fd(handle_t handle, readable r);
             void     add_fd(handle_t handle, writable w);
@@ -28,8 +28,8 @@ namespace cxx {
             void     destroy();
 
             struct poll_entry {
-                fd_t        id;
-                event_sink* cb;
+                fd_t            id;
+                poller_event*   cb;
             };
 
             typedef std::vector<poll_entry >    fdtable_t;

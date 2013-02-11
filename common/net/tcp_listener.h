@@ -14,12 +14,12 @@ namespace cxx {
         class tcp_address;
         class connection_event;
 
-        class tcp_listener : public event_sink {
+        class tcp_listener : public poller_event {
         public:
             tcp_listener(reactor* r, const tcp_address &addr, const options& opt);
             ~tcp_listener();
 
-            bool listen(int backlog);
+            bool listen();
             void close();
             void attach(connection_event* conn_cb);
             void detach(connection_event* conn_cb);

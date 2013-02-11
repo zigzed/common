@@ -19,7 +19,7 @@ namespace cxx {
          * connected, tcp_connector will notify the user the event and the
          * socket file descriptor (for windows, socket handle)
          */
-        class tcp_connector : public event_sink {
+        class tcp_connector : public poller_event {
         public:
             tcp_connector(reactor* r, const tcp_address& addr, const options& opt);
             ~tcp_connector();

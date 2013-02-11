@@ -13,7 +13,7 @@ namespace cxx {
         {
         }
 
-        poller::handle_t poll::add_fd(fd_t fd, event_sink *sink)
+        poller::handle_t poll::add_fd(fd_t fd, poller_event *sink)
         {
             int sz = tables_.size();
             if(sz <= fd) {

@@ -19,7 +19,7 @@ namespace cxx {
         {
         }
 
-        poller::handle_t select::add_fd(fd_t fd, event_sink *sink)
+        poller::handle_t select::add_fd(fd_t fd, poller_event *sink)
         {
             select_entry se = { fd, sink };
             fd_set_.push_back(se);

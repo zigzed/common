@@ -189,6 +189,27 @@ TEST(ns_input_buffer, scsp_int)
            usage.user / sec, usage.sys / sec, ((usage.user + usage.sys) * 100.0 / usage.wall));
 }
 
+TEST(ns_input_buffer, mcsp)
+{
+    srand(time(NULL));
+    std::vector<std::pair<int, int > > expected;
+    for(int i = 0; i < test_count / 9; ++i) {
+        int a = random() % 512;
+        int b = random();
+        expected.push_back(std::make_pair(a, b));
+    }
+
+    cxx::alg::ns_input_buffer  buf(NULL, 1024*1024, 2);
+    producer                p(expected, &buf);
+    consumer                c(expected, &buf);
+    cxx::sys::thread c1 = cxx::sys::threadcontrol::create(cxx::MakeDelegate(&c, &consumer::read), "consumer1");
+    cxx::sys::thread c2 = cxx::sys::threadcontrol::create(cxx::MakeDelegate(&c, &consumer::read), "consumer2");
+    cxx::sys::thread tp = cxx::sys::threadcontrol::create(cxx::MakeDelegate(&p, &producer::write), "procuder");
+    tp.join();
+    c1.join();
+    c2.join();
+}
+
 
 int main(int argc, char* argv[])
 {

@@ -7,6 +7,7 @@
 #include <string>
 #include <stdexcept>
 #include <sstream>
+#include <stdio.h>
 
 //  supply errno values likely to be missing, particularly on Windows
 
@@ -345,6 +346,12 @@ namespace cxx {
                         throw std::logic_error(msg + '\n' + pos);
                     }
                 };
+                struct PrintfRaiser {
+                    template<typename T >
+                    static bool Throw(const T&, const std::string& msg, const char* pos) {
+                        fprintf(stderr, "%s\n%s\n", msg.c_str(), pos);
+                    }
+                };
             }
 
             template<typename Ref, typename P, typename R >
@@ -382,6 +389,7 @@ namespace cxx {
             {
                 return enforcer<T&, P, R >(t, pos);
             }
+
         }
 
     }
@@ -390,11 +398,17 @@ namespace cxx {
 #if     defined(DEBUG) || defined(_DEBUG)
     #define STRINGIZE(expr)         STRINGIZE_HELPER(expr)
     #define STRINGIZE_HELPER(expr)  #expr
+    #define DEFAULT_RAISER  cxx::sys::err::detail::DefaultRaiser
     #define ENFORCE(exp)    \
-        *cxx::sys::err::make_enforcer<cxx::sys::err::detail::DefaultPredicate, cxx::sys::err::detail::DefaultRaiser>((exp), "Expression '" #exp "' failed in '" \
+        *cxx::sys::err::make_enforcer<cxx::sys::err::detail::DefaultPredicate, DEFAULT_RAISER>((exp), "Expression '" #exp "' failed in '" \
         __FILE__ "', line: " STRINGIZE(__LINE__))
 #else
-    #define ENFORCE(exp)
+    #define DEFAULT_RAISER  cxx::sys::err::detail::PrintfRaiser
+    #define ENFORCE(exp)    \
+        *cxx::sys::err::make_enforcer<cxx::sys::err::detail::DefaultPredicate, DEFAULT_RAISER>(true, NULL)
 #endif
+
+
+
 
 #endif

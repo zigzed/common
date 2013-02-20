@@ -83,6 +83,7 @@ set(COMMON_SRC
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h
     ../common/alg/pipe.h
+    ../common/alg/inputbuf.h alg/inputbuf.cpp
     ../common/cfg/properties.h cfg/properties.cpp
     ../common/cfg/json/json-forwards.h ../common/cfg/json/json.h
     cfg/json/jsoncpp.cpp

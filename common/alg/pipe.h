@@ -164,7 +164,7 @@ namespace cxx {
                 ENFORCE(rc);
 
                 return (*fn)(queue_.front());
-           }
+            }
 
             inline const typename detail::queue<T, N >::stat& info() const {
                 return queue_.info();

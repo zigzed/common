@@ -75,13 +75,13 @@ namespace cxx {
 
             triedmutex();
             ~triedmutex();
-        private:
-            triedmutex(const triedmutex& );
-            triedmutex& operator= (const triedmutex& );
 
             void acquire();
             void release();
             bool trylock();
+        private:
+            triedmutex(const triedmutex& );
+            triedmutex& operator= (const triedmutex& );
 
             detail::triedmutex_t	locker;
         };
@@ -95,14 +95,14 @@ namespace cxx {
 
             timedmutex();
             ~timedmutex();
-        private:
-            timedmutex(const timedmutex& );
-            timedmutex& operator= (const timedmutex& );
 
             void acquire();
             void release();
             bool trylock();
             bool waitfor(unsigned long msec);
+        private:
+            timedmutex(const timedmutex& );
+            timedmutex& operator= (const timedmutex& );
 
             detail::timedmutex_t	locker;
         };
@@ -117,16 +117,36 @@ namespace cxx {
 
             explicit namedmutex(const char* name);
             ~namedmutex();
-        private:
-            namedmutex(const namedmutex& );
-            namedmutex& operator= (const namedmutex& );
 
             void acquire();
             void release();
             bool trylock();
             bool waitfor(unsigned long msec);
+        private:
+            namedmutex(const namedmutex& );
+            namedmutex& operator= (const namedmutex& );
 
             detail::namedmutex_t    locker;
+        };
+
+        // a null mutex which do nothing to do with thread-safe
+        class null_mutex {
+            friend class detail::syncobj<null_mutex >;
+        public:
+            typedef detail::scopelock<null_mutex>   scopelock;
+            typedef detail::triedlock<null_mutex>   triedlock;
+            typedef detail::timedlock<null_mutex>   timedlock;
+
+            explicit null_mutex() {}
+            ~null_mutex() {}
+
+            void acquire() {}
+            void release() {}
+            bool trylock() { return true; }
+            bool waitfor(unsigned long msec) { return true; }
+        private:
+            null_mutex(const null_mutex& );
+            null_mutex& operator= (const null_mutex& );
         };
 
         class rwlock {

@@ -43,7 +43,7 @@ public:
         int count = 0;
         int flush = 0;
         while(count < c_) {
-            p_.write(count, false);
+            p_.write(count);
             if(!p_.flush()) {
                 ++flush;
             }
@@ -113,7 +113,7 @@ public:
         int count = 0;
         int flush = 0;
         while(count < c_) {
-            p_.write(count, false);
+            p_.write(count);
             bool ok = p_.flush();
             if(!ok) {
                 ++flush;

@@ -74,11 +74,13 @@ set(COMMON_SRC
     ../common/sys/seh.h sys/seh_w32.cpp
     ../common/sys/filesystem.h sys/filesystem_linux.cpp 
     sys/filesystem_w32.cpp
+    ../common/sys/uuid.h sys/uuid.cpp
     ../common/sys/event.h sys/event.cpp
     ../common/fastdelegate.h ../common/fastdelegatebind.h
     ../common/sys/threads.h sys/threads.cpp
     ../common/sys/atomic.h sys/atomic.cpp
     ../common/sys/error.h sys/error.cpp
+    ../common/alg/crc.h alg/crc.cpp
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp
     ../common/alg/digraph.h

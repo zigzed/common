@@ -74,25 +74,12 @@ namespace cxx {
 
             /** write an item to the pipe without flush it yet.
              */
-            inline void write(const T& value, bool incomplete) {
+            inline void write(const T& value) {
                 // place the value to the queue, add new terminator.
                 queue_.back() = value;
                 queue_.push();
 
-                if(!incomplete) {
-                    f_ = &queue_.back();
-                }
-            }
-
-            /** pop an incomplete item from the pipe. return true if incomplete
-             * item exists
-             */
-            inline bool unwrite(T* value) {
-                if(f_ == &queue_.back())
-                    return false;
-                queue_.unpush();
-                *value = queue_.back();
-                return true;
+                f_ = &queue_.back();
             }
 
             /** flush all complete items to the pipe. return false if the reader

@@ -121,12 +121,13 @@ namespace cxx {
             /** 如果读取到的值大于1,则说明将多次事件通知一次读到了。那么需要将多读到的再
              * 写回去
              */
-            if(d >= 2) {
-                uint64_t i = d - 1;
+            if(d == 2) {
+                uint64_t i = 1;
                 ssize_t sz = write(w_, &i, sizeof(i));
                 assert(sz == sizeof(i));
                 return;
             }
+            assert(d == 1);
 #endif
         }
 

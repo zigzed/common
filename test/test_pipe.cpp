@@ -61,7 +61,7 @@ private:
 class PipeTesterNotify {
 public:
     PipeTesterNotify(int count, int sleep)
-        : c_(count), s_(sleep), active(true)
+        : c_(count), s_(sleep), active(false)
     {
         p_.read(NULL);
     }
@@ -88,7 +88,7 @@ public:
                 e_.recv();
             }
 
-            if(e_.wait(s_ * 1000)) {
+            if(e_.wait(-1)) {
                 sleep++;
                 active = true;
                 bool ok = p_.read(&x);
@@ -102,7 +102,7 @@ public:
             }
         }
         std::cout << "reader sleep: " << sleep << ", a: " << a_cnt << ", p: "
-                  << p_cnt << "\n";
+                  << p_cnt << " writer flush: " << flush << "\n";
         std::cout << "reader sleep: " << sleep << ", acq:" << p_.info().acq
                   << ", rel: " << p_.info().rel << ", add: " << p_.info().add
                   << ", del: " << p_.info().del << "\n";
@@ -111,7 +111,7 @@ public:
     void writer()
     {
         int count = 0;
-        int flush = 0;
+        flush = 0;
         while(count < c_) {
             p_.write(count);
             bool ok = p_.flush();
@@ -129,6 +129,7 @@ private:
     int             c_;
     int             s_;
     bool            active;
+    int             flush;
 };
 
 class PipeLockTester {

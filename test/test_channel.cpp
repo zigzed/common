@@ -30,7 +30,9 @@ public:
                 sleep ++;
             }
         }
-        std::cout << "reader sleep: " << sleep << "\n";
+        std::cout << "reader sleep: " << sleep
+                  << " channel size: " << p_.size()
+                  << "\n";
     }
 
     void writer()

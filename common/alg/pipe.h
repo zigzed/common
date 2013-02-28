@@ -5,6 +5,8 @@
 #include "common/config.h"
 #include "common/sys/atomic.h"
 #include "common/sys/error.h"
+#include <stdlib.h> // for malloc
+#include <string.h> // for memset
 
 namespace cxx {
     namespace alg {
@@ -76,7 +78,8 @@ namespace cxx {
              */
             inline void write(const T& value) {
                 // place the value to the queue, add new terminator.
-                queue_.back() = value;
+                //queue_.back() = value;
+                new (&queue_.back()) T(value);
                 queue_.push();
 
                 f_ = &queue_.back();

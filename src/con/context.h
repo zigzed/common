@@ -1,6 +1,6 @@
 /* Copyright (c) 2005-2006 Russ Cox, MIT; see COPYRIGHT */
-#ifndef CXX_SYS_CONTEXT_H
-#define CXX_SYS_CONTEXT_H
+#ifndef CXX_CON_CONTEXT_H
+#define CXX_CON_CONTEXT_H
 
 #if defined(__sun__)
 #	define __EXTENSIONS__ 1 /* SunOS */
@@ -43,7 +43,7 @@
 #endif
 #include <sys/utsname.h>
 #include <inttypes.h>
-#include "common/sys/coroutine.h"
+#include "common/con/coroutine.h"
 
 #define nil ((void*)0)
 #define nelem(x) (sizeof(x)/sizeof((x)[0]))
@@ -142,7 +142,7 @@ void setmcontext(const mcontext_t*);
 #endif
 
 namespace cxx {
-    namespace sys {
+    namespace con {
 
         enum {
             STACK = 8192

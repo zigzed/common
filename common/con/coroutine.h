@@ -1,12 +1,12 @@
 /** Copyright (C) wilburlang@gmail.com
  * based on Russ Cox's libtask
  */
-#ifndef CXX_SYS_COROUTINE_H
-#define CXX_SYS_COROUTINE_H
+#ifndef CXX_CON_COROUTINE_H
+#define CXX_CON_COROUTINE_H
 #include <stddef.h>
 
 namespace cxx {
-    namespace sys {
+    namespace con {
 
         typedef void (*taskptr)(void*);
 

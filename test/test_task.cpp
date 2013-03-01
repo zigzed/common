@@ -2,33 +2,33 @@
  */
 #include "common/config.h"
 #include "common/gtest/gtest.h"
-#include "common/sys/coroutine.h"
+#include "common/con/coroutine.h"
 #include "common/sys/threads.h"
 #include <sys/time.h>
 
 void dice(void* p)
 {
-    void* p1 = cxx::sys::taskarg::p1(p);
-    void* p2 = cxx::sys::taskarg::p2(p);
+    void* p1 = cxx::con::taskarg::p1(p);
+    void* p2 = cxx::con::taskarg::p2(p);
 
-    cxx::sys::coroutine::name(p1, "dice %d", cxx::sys::coroutine::id(p1));
+    cxx::con::coroutine::name(p1, "dice %d", cxx::con::coroutine::id(p1));
 
     timeval tv;
     gettimeofday(&tv, NULL);
     srandom(tv.tv_usec);
     int sum = 0;
     while((sum += random() % 6 + 1) < 10000) {
-        cxx::sys::coroutine::yield(p1);
+        cxx::con::coroutine::yield(p1);
     }
 
-    cxx::sys::coroutine::check(p1);
-    printf("winner is %s %d, %d\n", cxx::sys::coroutine::name(p1), cxx::sys::coroutine::id(p1), sum);
-    cxx::sys::coroutine::quit(p1, 0);
+    cxx::con::coroutine::check(p1);
+    printf("winner is %s %d, %d\n", cxx::con::coroutine::name(p1), cxx::con::coroutine::id(p1), sum);
+    cxx::con::coroutine::quit(p1, 0);
 }
 
 void dice_main(int argc, char** argv)
 {
-    cxx::sys::coroutine* c = (cxx::sys::coroutine* )argv[1];
+    cxx::con::coroutine* c = (cxx::con::coroutine* )argv[1];
     for(long i = 0; i < 5; ++i) {
         c->create(dice, (void* )i, 4096);
     }
@@ -36,7 +36,7 @@ void dice_main(int argc, char** argv)
 
 TEST(coroutine, dice)
 {
-    cxx::sys::coroutine c(256*1024);
+    cxx::con::coroutine c(256*1024);
 
     char** argv = new char*[2];
     argv[0] = new char[5];
@@ -50,18 +50,18 @@ TEST(coroutine, dice)
 
 void perf(void* p)
 {
-    void* p1 = cxx::sys::taskarg::p1(p);
-    void* p2 = cxx::sys::taskarg::p2(p);
+    void* p1 = cxx::con::taskarg::p1(p);
+    void* p2 = cxx::con::taskarg::p2(p);
 
     int count = 0;
     while(count++ < 1000000) {
-        cxx::sys::coroutine::yield(p1);
+        cxx::con::coroutine::yield(p1);
     }
 }
 
 void perf_main(int argc, char** argv)
 {
-    cxx::sys::coroutine* c = (cxx::sys::coroutine* )argv[1];
+    cxx::con::coroutine* c = (cxx::con::coroutine* )argv[1];
     for(long i = 0; i < 5; ++i) {
         c->create(perf, (void* )i, 4096);
     }
@@ -73,7 +73,7 @@ TEST(coroutine, perfmance)
     int cpu[5] = { 0, 1, 2, 3, 4 };
     int ret = cxx::sys::threadcontrol::policy(1, cpu + 1);
 
-    cxx::sys::coroutine c(256*1024);
+    cxx::con::coroutine c(256*1024);
 
     char** argv = new char*[2];
     argv[0] = new char[5];

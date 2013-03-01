@@ -1,11 +1,11 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  * based on Russ Cox's libtask
  */
-#include "common/sys/coroutine.h"
+#include "common/con/coroutine.h"
 #include "context.h"
 
 namespace cxx {
-    namespace sys {
+    namespace con {
 
         int coroutine::idgen_ = 0;
 

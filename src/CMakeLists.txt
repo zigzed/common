@@ -81,7 +81,7 @@ set(COMMON_SRC
     ../common/sys/atomic.h sys/atomic.cpp
     ../common/sys/error.h sys/error.cpp
     ../common/sys/coroutine.h sys/coroutine/asm.S sys/coroutine.cpp 
-    sys/context.h 
+    sys/context.h sys/context.cpp
     ../common/alg/crc.h alg/crc.cpp
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp

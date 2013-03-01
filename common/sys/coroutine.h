@@ -42,16 +42,16 @@ namespace cxx {
             static void**       data(void* task);
 
             /** set name of the task */
-            static void         name(void* task, char* fmt, ...);
+            static void         name(void* task, const char* fmt, ...);
 
             /** set state of the task */
-            static void         info(void* task, char *fmt, ...);
+            static void         state(void* task, const char *fmt, ...);
 
             /** get name of the task */
             static const char*  name(void* task);
 
             /** get info of the task */
-            static const char*  info(void* task);
+            static const char*  state(void* task);
 
             /** get id of the task */
             static unsigned int id(void* task);
@@ -61,6 +61,8 @@ namespace cxx {
 
             /** quit the coroutine */
             static void         quit(void* task, int status);
+
+            static int          check(void* task);
 
         private:
             int     schedule();

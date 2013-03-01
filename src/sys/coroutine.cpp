@@ -21,6 +21,13 @@ namespace cxx {
 
         coroutine::~coroutine()
         {
+            task* t = tasklist_.head;
+            task* p = t;
+            while(t) {
+                p = p->next;
+                del_task(t);
+                t = p;
+            }
             delete pending_;
             free(alltasks_);
         }
@@ -50,6 +57,7 @@ namespace cxx {
 
             t->startfn(t);
 
+            coroutine::check(t);
             coroutine::stop(t, 0);
         }
 
@@ -147,7 +155,7 @@ namespace cxx {
             task* t = (task* )v;
             n = t->engine->taskswitch_;
             t->engine->taskready(t->engine->running_);
-            info(t, "yield");
+            //state(t, "yield");
             t->engine->taskshift();
 
             return t->engine->taskswitch_ - n - 1;
@@ -163,16 +171,6 @@ namespace cxx {
         {
             task* t = (task* )v;
             return &t->udata;
-        }
-
-        void coroutine::info(void *v, char* fmt, ...)
-        {
-            va_list arg;
-            task *t = (task* )v;
-
-            va_start(arg, fmt);
-            vsnprint(t->state, sizeof t->name, fmt, arg);
-            va_end(arg);
         }
 
         unsigned int coroutine::id(void *v)
@@ -195,6 +193,7 @@ namespace cxx {
         {
             task* p = (task* )v;
             task* n = p;
+            p->engine->taskexit_ = status;
             while(p) {
                 p->exiting = 1;
                 p = p->prev;
@@ -203,6 +202,22 @@ namespace cxx {
                 n->exiting = 1;
                 n = n->next;
             }
+        }
+
+        int coroutine::check(void* v)
+        {
+            int local_variable;
+            task* t = (task* )v;
+
+            if((uchar* )&local_variable > t->stk + t->stksize - 64) {
+                print("out of bound 1: %p, %p, %d\n", &local_variable, t->stk, t->stksize);
+                return (uchar* )&local_variable - t->stk - t->stksize - 64;
+            }
+            if((uchar* )&local_variable < t->stk + 8) {
+                print("out of bound 2: %p, %p, %d\n", &local_variable, t->stk, t->stksize);
+                return t->stk + 8 - (uchar* )&local_variable;
+            }
+            return 0;
         }
 
         void coroutine::needstack(coroutine::task *t, int n)
@@ -289,10 +304,7 @@ namespace cxx {
             arg.argv = argv;
 
             create(taskmainstart, &arg, stack_);
-            schedule();
-            fprint(2, "taskscheduler returned in main!\n");
-
-            return 0;
+            return schedule();
         }
 
         int coroutine::schedule()
@@ -330,6 +342,39 @@ namespace cxx {
             }
         }
 
+        void coroutine::name(void *v, const char *fmt, ...)
+        {
+            va_list arg;
+            task* t = (task* )v;
+
+            va_start(arg, fmt);
+            vsnprint(t->name, sizeof(t->name), fmt, arg);
+            va_end(arg);
+        }
+
+        const char* coroutine::name(void *v)
+        {
+            task* t = (task* )v;
+            return t->name;
+        }
+
+        void coroutine::state(void *v, const char *fmt, ...)
+        {
+            va_list arg;
+            task* t = (task* )v;
+
+            va_start(arg, fmt);
+            vsnprint(t->state, sizeof(t->state), fmt, arg);
+            va_end(arg);
+        }
+
+        const char* coroutine::state(void *v)
+        {
+            task* t = (task* )v;
+            return t->state;
+        }
+
+
     }
 }
 
@@ -343,11 +388,11 @@ enum
 {
     FlagLong = 1<<0,
     FlagLongLong = 1<<1,
-    FlagUnsigned = 1<<2,
+    FlagUnsigned = 1<<2
 };
 
 static char*
-printstr(char *dst, char *edst, char *s, int size)
+printstr(char *dst, const char *edst, const char *s, int size)
 {
     int l, n, sign;
 
@@ -379,10 +424,11 @@ printstr(char *dst, char *edst, char *s, int size)
 }
 
 char*
-vseprint(char *dst, char *edst, char *fmt, va_list arg)
+vseprint(char *dst, const char *edst, const char *fmt, va_list arg)
 {
     int fl, size, sign, base;
-    char *p, *w;
+    const char *p;
+    char *w;
     char cbuf[2];
 
     w = dst;
@@ -507,13 +553,13 @@ break2:
 }
 
 char*
-vsnprint(char *dst, uint n, char *fmt, va_list arg)
+vsnprint(char *dst, uint n, const char *fmt, va_list arg)
 {
     return vseprint(dst, dst+n, fmt, arg);
 }
 
 char*
-snprint(char *dst, uint n, char *fmt, ...)
+snprint(char *dst, uint n, const char *fmt, ...)
 {
     va_list arg;
 
@@ -535,7 +581,7 @@ seprint(char *dst, char *edst, char *fmt, ...)
 }
 
 int
-vfprint(int fd, char *fmt, va_list arg)
+vfprint(int fd, const char *fmt, va_list arg)
 {
     char buf[256];
 
@@ -544,13 +590,13 @@ vfprint(int fd, char *fmt, va_list arg)
 }
 
 int
-vprint(char *fmt, va_list arg)
+vprint(const char *fmt, va_list arg)
 {
     return vfprint(1, fmt, arg);
 }
 
 int
-fprint(int fd, char *fmt, ...)
+fprint(int fd, const char *fmt, ...)
 {
     int n;
     va_list arg;
@@ -562,7 +608,7 @@ fprint(int fd, char *fmt, ...)
 }
 
 int
-print(char *fmt, ...)
+print(const char *fmt, ...)
 {
     int n;
     va_list arg;
@@ -574,7 +620,7 @@ print(char *fmt, ...)
 }
 
 char*
-strecpy(char *dst, char *edst, char *src)
+strecpy(char *dst, const char *edst, const char *src)
 {
     *printstr(dst, edst, src, 0) = 0;
     return dst;

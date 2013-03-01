@@ -72,15 +72,15 @@ typedef long long vlong;
 #define vseprint task_vseprint
 #define strecpy task_strecpy
 
-int print(char*, ...);
-int fprint(int, char*, ...);
-char *snprint(char*, uint, char*, ...);
-char *seprint(char*, char*, char*, ...);
-int vprint(char*, va_list);
-int vfprint(int, char*, va_list);
-char *vsnprint(char*, uint, char*, va_list);
-char *vseprint(char*, char*, char*, va_list);
-char *strecpy(char*, char*, char*);
+int print(const char*, ...);
+int fprint(int, const char*, ...);
+char *snprint(char*, uint, const char*, ...);
+char *seprint(char*, const char*, const char*, ...);
+int vprint(const char*, va_list);
+int vfprint(int, const char*, va_list);
+char *vsnprint(char*, uint, const char*, va_list);
+char *vseprint(char*, const char*, const char*, va_list);
+char *strecpy(char*, const char*, const char*);
 
 #if defined(__FreeBSD__) && __FreeBSD__ < 5
 extern	int		getmcontext(mcontext_t*);
@@ -153,6 +153,7 @@ namespace cxx {
         };
 
         struct coroutine::task {
+            uint	stksize;    // move stksize to the header of stack to prevent be overwriten
             char	name[256];	// offset known to acid
             char	state[256];
             task	*next;
@@ -163,7 +164,6 @@ namespace cxx {
             uvlong	alarmtime;
             uint	id;
             uchar	*stk;
-            uint	stksize;
             int     exiting;
             int     alltaskslot;
             int     system;

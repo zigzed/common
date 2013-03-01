@@ -67,6 +67,8 @@ namespace cxx {
             static void		sleep(long msec);
             static void		cancel(thread& thrd, long waittime);
             static size_t   thrdid();
+            // confine thread to processor
+            static int      policy(int len, int* cpu);
         };
 
         ///////////////////////////////////////////////////////////////////////////

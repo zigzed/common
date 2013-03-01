@@ -1,4 +1,5 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
+ * based on Russ Cox's libtask
  */
 #include "common/sys/coroutine.h"
 #include "context.h"
@@ -8,18 +9,33 @@ namespace cxx {
 
         int coroutine::idgen_ = 0;
 
-        coroutine::coroutine()
+        coroutine::coroutine(int stack_size)
             : taskcounts_(0), taskswitch_(0), taskexit_(0),
               running_(NULL), pending_(NULL), alltasks_(NULL),
-              nalltask_(0)
+              nalltask_(0), stack_(stack_size)
         {
             pending_ = new coroutine::context();
+            tasklist_.head = NULL;
+            tasklist_.tail = NULL;
         }
 
         coroutine::~coroutine()
         {
             delete pending_;
             free(alltasks_);
+        }
+
+
+        void* taskarg::p1(void * t)
+        {
+            coroutine::task* p = (coroutine::task* )t;
+            return p;
+        }
+
+        void* taskarg::p2(void * t)
+        {
+            coroutine::task* p = (coroutine::task* )t;
+            return p->startarg;
         }
 
         static void task_start(uint y, uint x)
@@ -32,11 +48,12 @@ namespace cxx {
             z |= y;
             t = (coroutine::task* )z;
 
-            t->startfn(t, t->startarg);
+            t->startfn(t);
+
             coroutine::stop(t, 0);
         }
 
-        coroutine::task* coroutine::taskalloc(void (*fn)(void*, void*), void *arg, uint stack)
+        coroutine::task* coroutine::taskalloc(taskptr fn, void* arg, unsigned int stack)
         {
             coroutine::task *t;
             sigset_t zero;
@@ -88,6 +105,7 @@ namespace cxx {
             y = z;
             z >>= 16;	/* hide undefined 32-bit shift from 32-bit compilers */
             x = z>>16;
+
             makecontext(&t->context.uc, (void(*)())task_start, 2, y, x);
 
             return t;
@@ -166,11 +184,11 @@ namespace cxx {
         void coroutine::stop(void *v, int status)
         {
             task* t = (task* )v;
-	    if(t && t->engine) {
+            if(t && t->engine) {
                 t->exiting = 1;
-		t->engine->taskexit_ = status;
+                t->engine->taskexit_ = status;
                 t->engine->taskshift();
-	    }
+            }
         }
 
         void coroutine::quit(void* v, int status)
@@ -238,9 +256,11 @@ namespace cxx {
             char**      argv;
         };
 
-        static void taskmainstart(void* c, void* v)
+        static void taskmainstart(void* arg)
         {
-            args* a = (args* )v;
+            void* p1 = taskarg::p1(arg);
+            void* p2 = taskarg::p2(arg);
+            args* a = (args* )p2;
             a->func(a->argc, a->argv);
         }
 
@@ -263,13 +283,12 @@ namespace cxx {
 #endif
 
             argv0_ = argv[0];
-            args    tmp;
-            tmp.func = fn;
-            tmp.argc = argc;
-            tmp.argv = argv;
+            args arg;
+            arg.func = fn;
+            arg.argc = argc;
+            arg.argv = argv;
 
-            int mainstacksize = 256*1024;
-            create(taskmainstart, &tmp, mainstacksize);
+            create(taskmainstart, &arg, stack_);
             schedule();
             fprint(2, "taskscheduler returned in main!\n");
 
@@ -290,6 +309,7 @@ namespace cxx {
                     return (1);
                 }
                 del_task(t);
+
                 if(!t->exiting) {
                     t->ready = 0;
                     running_ = t;

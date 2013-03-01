@@ -80,7 +80,7 @@ set(COMMON_SRC
     ../common/sys/threads.h sys/threads.cpp
     ../common/sys/atomic.h sys/atomic.cpp
     ../common/sys/error.h sys/error.cpp
-    ../common/sys/coroutine.h sys/coroutine.cpp 
+    ../common/sys/coroutine.h sys/coroutine/asm.S sys/coroutine.cpp 
     sys/context.h 
     ../common/alg/crc.h alg/crc.cpp
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h

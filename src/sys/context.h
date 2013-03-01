@@ -97,11 +97,11 @@ extern	void		makecontext(ucontext_t*, void(*)(), int, ...);
 #	define ucontext libthread_ucontext
 #	define ucontext_t libthread_ucontext_t
 #	if defined(__i386__)
-#		include "386-ucontext.h"
+#		include "coroutine/386-ucontext.h"
 #	elif defined(__x86_64__)
-#		include "amd64-ucontext.h"
+#		include "coroutine/amd64-ucontext.h"
 #	else
-#		include "power-ucontext.h"
+#		include "coroutine/power-ucontext.h"
 #	endif
 #endif
 
@@ -111,9 +111,9 @@ extern	void		makecontext(ucontext_t*, void(*)(), int, ...);
 #	define ucontext libthread_ucontext
 #	define ucontext_t libthread_ucontext_t
 #	if defined __i386__
-#		include "386-ucontext.h"
+#		include "coroutine/386-ucontext.h"
 #	else
-#		include "power-ucontext.h"
+#		include "coroutine/power-ucontext.h"
 #	endif
 extern pid_t rfork_thread(int, void*, int(*)(void*), void*);
 #endif
@@ -123,7 +123,7 @@ extern pid_t rfork_thread(int, void*, int(*)(void*), void*);
 #	define mcontext_t libthread_mcontext_t
 #	define ucontext libthread_ucontext
 #	define ucontext_t libthread_ucontext_t
-#	include "sparc-ucontext.h"
+#	include "coroutine/sparc-ucontext.h"
 #endif
 
 #if defined(__arm__)
@@ -134,7 +134,7 @@ void setmcontext(const mcontext_t*);
 #endif
 
 #if defined(__mips__)
-#include "mips-ucontext.h"
+#include "coroutine/mips-ucontext.h"
 int getmcontext(mcontext_t*);
 void setmcontext(const mcontext_t*);
 #define	setcontext(u)	setmcontext(&(u)->uc_mcontext)
@@ -168,8 +168,8 @@ namespace cxx {
             int     alltaskslot;
             int     system;
             int     ready;
-            void	(*startfn)(void*, void*);
-            void	*startarg;
+            void	(*startfn)(void*);
+            void*   startarg;
             void	*udata;
             coroutine* engine;
         };

@@ -1,4 +1,5 @@
 /** Copyright (C) wilburlang@gmail.com
+ * based on Russ Cox's libtask
  */
 #ifndef CXX_SYS_COROUTINE_H
 #define CXX_SYS_COROUTINE_H
@@ -7,21 +8,27 @@
 namespace cxx {
     namespace sys {
 
-        typedef void (*taskptr)(void* , void* );
+        typedef void (*taskptr)(void*);
+
+        class taskarg {
+        public:
+            static void* p1(void* );
+            static void* p2(void* );
+        };
 
         class coroutine {
         public:
             struct task;
             struct context;
 
-            coroutine();
+            explicit coroutine(int stack_size);
             ~coroutine();
 
             /** create a coroutine task from the given function */
             task*   create(taskptr func, void* arg, int stack);
 
+            /** starting the coroutine with entry function fn */
             int     start(void (*fn)(int, char** ), int argc, char** argv);
-            int     schedule();
 
             /** give up the CPU and switch to other tasks
              * return number of other tasks will be scheduled run
@@ -56,6 +63,7 @@ namespace cxx {
             static void         quit(void* task, int status);
 
         private:
+            int     schedule();
             void    add_task(task* t);
             void    del_task(task* t);
             void    taskready(task* t);
@@ -79,6 +87,7 @@ namespace cxx {
             int         nalltask_;
             char*       argv0_;
             static int  idgen_;
+            int         stack_;
         };
     }
 }

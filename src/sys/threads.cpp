@@ -301,5 +301,24 @@ namespace cxx {
 
         }
 
+        int threadcontrol::policy(int len, int *cpu)
+        {
+#if defined(OS_WINDOWS)
+            DWORD_PTR   set = 0;
+            for(int i = 0; i < len; ++i) {
+                set |= (1 << cpu[i]);
+            }
+            return SetThreadAffinityMask(GetCurrentThread(), set);
+#else
+            pid_t       tid = syscall(__NR_gettid);
+            cpu_set_t   set;
+            CPU_ZERO(&set);
+            for(int i = 0; i < len; ++i) {
+                CPU_SET(cpu[i], &set);
+            }
+            return sched_setaffinity(tid, sizeof(set), &set);
+#endif
+        }
+
     }
 }

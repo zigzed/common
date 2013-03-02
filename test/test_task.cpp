@@ -85,6 +85,37 @@ TEST(coroutine, perfmance)
     printf("perf done\n");
 }
 
+void delay(void *p)
+{
+    void* p1 = cxx::con::taskarg::p1(p);
+    int ms = random() % 300;
+    cxx::con::coroutine::delay(p1, ms);
+    printf("delay %d (%d) is done\n", cxx::con::coroutine::id(p1), ms);
+}
+
+void delay_main(int argc, char** argv)
+{
+    srandom(time(NULL));
+    cxx::con::coroutine* c = (cxx::con::coroutine* )argv[1];
+    for(long i = 0; i < 3; ++i) {
+        c->create(delay, (void* )i, 32684);
+    }
+}
+
+TEST(task, delay)
+{
+    cxx::con::coroutine c(256*1024);
+
+    char** argv = new char*[2];
+    argv[0] = new char[5];
+    argv[1] = (char* )&c;
+    strcpy(argv[0], "delay");
+
+    c.start(delay_main, 2, argv);
+
+    printf("delay done\n");
+}
+
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);

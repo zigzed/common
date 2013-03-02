@@ -63,33 +63,38 @@ namespace cxx {
             static void         quit(void* task, int status);
 
             static int          check(void* task);
-
+            static void         system(void* task);
         private:
+            struct task_list {
+                task* head;
+                task* tail;
+            };
+
+            static void add_task(task_list& list, task* t);
+            static void del_task(task_list& list, task* t);
+            static void sleeptsk(void* arg);
+
             int     schedule();
-            void    add_task(task* t);
-            void    del_task(task* t);
             void    taskready(task* t);
             void    taskshift();
             void    ctxtshift(task* v, context* f, context* t);
             void    needstack(task* t, int n);
             task*   taskalloc(taskptr p, void* arg, unsigned int stack);
 
-            struct task_list {
-                task* head;
-                task* tail;
-            };
-
             int         taskcounts_;
             int         taskswitch_;
             int         taskexit_;
             task*       running_;
             context*    pending_;
-            task_list   tasklist_;
+            // active (running) tasks
+            task_list   actives_;
+            // sleeping tasks
+            task_list   sleeping_;
             task**      alltasks_;
             int         nalltask_;
-            char*       argv0_;
             static int  idgen_;
             int         stack_;
+            int         sleepcnt_;
         };
     }
 }

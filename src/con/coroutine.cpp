@@ -3,29 +3,41 @@
  */
 #include "common/con/coroutine.h"
 #include "context.h"
+#include "common/sys/threads.h"
 
 namespace cxx {
     namespace con {
 
         int coroutine::idgen_ = 0;
 
+        static uvlong nsec()
+        {
+            struct timeval tv;
+
+            if(gettimeofday(&tv, 0) < 0)
+                return -1;
+            return (uvlong)tv.tv_sec*1000*1000*1000 + tv.tv_usec*1000;
+        }
+
         coroutine::coroutine(int stack_size)
             : taskcounts_(0), taskswitch_(0), taskexit_(0),
               running_(NULL), pending_(NULL), alltasks_(NULL),
-              nalltask_(0), stack_(stack_size)
+              nalltask_(0), stack_(stack_size), sleepcnt_(-1)
         {
             pending_ = new coroutine::context();
-            tasklist_.head = NULL;
-            tasklist_.tail = NULL;
+            actives_.head = NULL;
+            actives_.tail = NULL;
+            sleeping_.head = NULL;
+            sleeping_.tail = NULL;
         }
 
         coroutine::~coroutine()
         {
-            task* t = tasklist_.head;
+            task* t = actives_.head;
             task* p = t;
             while(t) {
                 p = p->next;
-                del_task(t);
+                del_task(actives_, t);
                 t = p;
             }
             delete pending_;
@@ -155,10 +167,92 @@ namespace cxx {
             task* t = (task* )v;
             n = t->engine->taskswitch_;
             t->engine->taskready(t->engine->running_);
-            //state(t, "yield");
+            state(t, "yield");
             t->engine->taskshift();
 
             return t->engine->taskswitch_ - n - 1;
+        }
+
+        void coroutine::sleeptsk(void* arg)
+        {
+            coroutine::task* t = (coroutine::task* )taskarg::p1(arg);
+            coroutine* c = t->engine;
+            int i, ms;
+            uvlong now;
+
+            coroutine::system(t);
+            coroutine::name(t, "sleep");
+
+            for(;;) {
+                // let everyone else run
+                while(coroutine::yield(c->running_) > 0)
+                    ;
+                if((t=t->engine->sleeping_.head) == nil)
+                    ms = 1000;
+                else{
+                    /* sleep at most 5s */
+                    now = nsec();
+                    if(now >= t->alarmtime)
+                        ms = 0;
+                    else if(now+5*1000*1000*1000LL >= t->alarmtime)
+                        ms = (t->alarmtime - now)/1000000;
+                    else
+                        ms = 5000;
+                }
+                cxx::sys::threadcontrol::sleep(ms);
+
+                // we're the only one runnable
+                now = nsec();
+                while((t = t->engine->sleeping_.head) && now >= t->alarmtime) {
+                    del_task(t->engine->sleeping_, t);
+                    if(!t->system && --t->engine->sleepcnt_ == 0)
+                        t->engine->taskcounts_--;
+                    t->engine->taskready(t);
+                }
+            }
+        }
+
+        int coroutine::delay(void *v, int ms)
+        {
+            uvlong when, now;
+            task* t = (task* )v;
+            task_list&  sleeping = t->engine->sleeping_;
+            task*       running = t->engine->running_;
+
+            if(t->engine->sleepcnt_ == -1) {
+                t->engine->sleepcnt_ = 0;
+                t->engine->create(sleeptsk, NULL, 32768);
+            }
+
+            now = nsec();
+            when = now + (uvlong)ms * 1000000;
+            for(t = sleeping.head; t != nil && t->alarmtime < when; t = t->next)
+                ;
+            if(t) {
+                running->prev = t->prev;
+                running->next = t;
+            }
+            else {
+                running->prev = sleeping.tail;
+                running->next = (coroutine::task* )nil;
+            }
+
+            t = running;
+            t->alarmtime = when;
+            if(t->prev)
+                t->prev->next = t;
+            else
+                sleeping.head = t;
+            if(t->next)
+                t->next->prev = t;
+            else
+                sleeping.tail = t;
+
+            if(!t->system && t->engine->sleepcnt_++ == 0)
+                t->engine->taskcounts_++;
+            t->engine->taskshift();
+
+            return (nsec() - now) / 1000000;
         }
 
         void coroutine::taskshift()
@@ -220,6 +314,15 @@ namespace cxx {
             return 0;
         }
 
+        void coroutine::system(void *v)
+        {
+            task* t = (task* )v;
+            if(!t->engine->running_->system) {
+                t->engine->running_->system = 1;
+                --t->engine->taskcounts_;
+            }
+        }
+
         void coroutine::needstack(coroutine::task *t, int n)
         {
             if((char*)&t <= (char*)t->stk
@@ -232,12 +335,12 @@ namespace cxx {
         void coroutine::taskready(task *t)
         {
             t->ready = 1;
-            add_task(t);
+            add_task(actives_, t);
         }
 
-        void coroutine::add_task(task *t)
+        void coroutine::add_task(task_list& list, task *t)
         {
-            task_list* l = &tasklist_;
+            task_list* l = &list;
             if(l->tail) {
                 l->tail->next = t;
                 t->prev = l->tail;
@@ -250,9 +353,9 @@ namespace cxx {
             t->next = (task* )nil;
         }
 
-        void coroutine::del_task(task *t)
+        void coroutine::del_task(task_list& list, task *t)
         {
-            task_list* l = &tasklist_;
+            task_list* l = &list;
             if(t->prev)
                 t->prev->next = t->next;
             else
@@ -297,7 +400,6 @@ namespace cxx {
             sigaction(SIGINFO, &sa, &osa);
 #endif
 
-            argv0_ = argv[0];
             args arg;
             arg.func = fn;
             arg.argc = argc;
@@ -315,12 +417,12 @@ namespace cxx {
             for(;;){
                 if(taskcounts_ == 0)
                     return (taskexit_);
-                t = tasklist_.head;
+                t = actives_.head;
                 if(t == nil){
                     fprint(2, "no runnable tasks! %d tasks stalled\n", taskcounts_);
                     return (1);
                 }
-                del_task(t);
+                del_task(actives_, t);
 
                 if(!t->exiting) {
                     t->ready = 0;

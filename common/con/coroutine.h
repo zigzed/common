@@ -4,6 +4,7 @@
 #ifndef CXX_CON_COROUTINE_H
 #define CXX_CON_COROUTINE_H
 #include <stddef.h>
+#include <map>
 
 namespace cxx {
     namespace con {
@@ -26,9 +27,12 @@ namespace cxx {
 
             /** create a coroutine task from the given function */
             task*   create(taskptr func, void* arg, int stack);
+            task*   getcur();
 
             /** starting the coroutine with entry function fn */
             int     start(void (*fn)(int, char** ), int argc, char** argv);
+
+            static task*        create(void* task, taskptr func, void *arg, int stack);
 
             /** give up the CPU and switch to other tasks
              * return number of other tasks will be scheduled run
@@ -61,6 +65,11 @@ namespace cxx {
 
             /** quit the coroutine */
             static void         quit(void* task, int status);
+
+            /** wait for object 'object' */
+            static void         wait(void* task, int object);
+            /** wakeup the task that wait for 'object' */
+            static int          post(void* task, int object, int all);
 
             static int          check(void* task);
             static void         system(void* task);
@@ -95,6 +104,9 @@ namespace cxx {
             static int  idgen_;
             int         stack_;
             int         sleepcnt_;
+
+            typedef std::map<int, task_list >   wait_t;
+            wait_t      waiting_;
         };
     }
 }

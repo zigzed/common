@@ -116,6 +116,66 @@ TEST(task, delay)
     printf("delay done\n");
 }
 
+void asleep(void* p)
+{
+    void* p1 = cxx::con::taskarg::p1(p);
+    void* p2 = cxx::con::taskarg::p2(p);
+
+    if(p2 != (void* )1) {
+        cxx::con::coroutine::create(p1, asleep, (void* )1, 32768);
+    }
+
+    printf("waiting for: %d\n", (long)p2);
+    cxx::con::coroutine::wait(p1, (long)p2);
+    printf("notified: %d\n", (long)p2);
+}
+
+void notify(void* p)
+{
+    void* p1 = cxx::con::taskarg::p1(p);
+    cxx::sys::threadcontrol::sleep(100);
+
+    printf("posting\n");
+    int r = cxx::con::coroutine::post(p1, 1, 1);
+    printf("waked: %d\n", r);
+    ASSERT_EQ(r, 2);
+
+    r = cxx::con::coroutine::post(p1, 2, 0);
+    printf("waked: %d\n", r);
+    ASSERT_EQ(r, 1);
+
+    r = cxx::con::coroutine::post(p1, 3, 1);
+    printf("waked: %d\n", r);
+    ASSERT_EQ(r, 0);
+}
+
+void sleep_main(int argc, char** argv)
+{
+    cxx::con::coroutine* c = (cxx::con::coroutine* )argv[1];
+    for(long i = 1; i < 3; ++i) {
+        c->create(asleep, (void* )i, 32768);
+    }
+
+    // waiting task created in 'asleep'
+    cxx::con::coroutine::delay(c->getcur(), 100);
+    c->create(notify, NULL, 32768);
+}
+
+TEST(task, wait_post)
+{
+    cxx::con::coroutine c(256*1024);
+
+    char** argv = new char*[2];
+    argv[0] = new char[5];
+    argv[1] = (char* )&c;
+    strcpy(argv[0], "wait_post");
+
+    c.start(sleep_main, 2, argv);
+
+    printf("sleep done\n");
+}
+
+
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);

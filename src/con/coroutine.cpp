@@ -152,6 +152,12 @@ namespace cxx {
             return t;
         }
 
+        coroutine::task* coroutine::create(void *v, taskptr func, void *arg, int stack)
+        {
+            task* p = (task* )v;
+            return p->engine->create(func, arg, stack);
+        }
+
         void coroutine::ctxtshift(task *v, context *f, context *t)
         {
             if(swapcontext(&f->uc, &t->uc) < 0){
@@ -298,6 +304,49 @@ namespace cxx {
             }
         }
 
+        void coroutine::wait(void *v, int object)
+        {
+            task* p = (task* )v;
+            coroutine* c = p->engine;
+
+            wait_t::iterator it;
+            while((it = c->waiting_.find(object)) == c->waiting_.end()) {
+                task_list t;
+                t.head = NULL;
+                t.tail = NULL;
+                c->waiting_.insert(std::make_pair(object, t));
+            }
+            task_list& w = it->second;
+
+            add_task(w, c->running_);
+            state(v, "wait");
+            c->taskshift();
+        }
+
+        int coroutine::post(void *v, int object, int all)
+        {
+            int i = 0;
+            task* p = (task* )v;
+            coroutine* c = p->engine;
+
+            wait_t::iterator it = c->waiting_.find(object);
+            if(it != c->waiting_.end()) {
+                task_list& w = it->second;
+
+                for(i = 0; ; i++) {
+                    if(i == 1 && !all) {
+                        break;
+                    }
+                    task* t = NULL;
+                    if((t = w.head) == nil)
+                        break;
+                    del_task(w, t);
+                    c->taskready(t);
+                }
+            }
+            return i;
+        }
+
         int coroutine::check(void* v)
         {
             int local_variable;
@@ -321,6 +370,11 @@ namespace cxx {
                 t->engine->running_->system = 1;
                 --t->engine->taskcounts_;
             }
+        }
+
+        coroutine::task* coroutine::getcur()
+        {
+            return running_;
         }
 
         void coroutine::needstack(coroutine::task *t, int n)

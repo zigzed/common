@@ -28,7 +28,7 @@ namespace cxx {
             struct task;
             struct context;
 
-            explicit scheduler(int stack_size);
+            explicit scheduler();
             ~scheduler();
 
             /** create a coroutine task from the given function */
@@ -50,6 +50,9 @@ namespace cxx {
             /** wakeup the task that wait for 'object' */
             int     post(int object, int all);
         private:
+            scheduler(const scheduler& rhs);
+            scheduler& operator= (const scheduler& rhs);
+
             friend class coroutine;
 
             struct tasklist {
@@ -99,6 +102,10 @@ namespace cxx {
             void        stop (int status);
             void        system();
         private:
+            coroutine(scheduler* s, scheduler::task* t);
+            coroutine(const coroutine& rhs);
+            coroutine& operator= (const coroutine& rhs);
+
             friend class scheduler;
             scheduler*          sche_;
             scheduler::task*    task_;

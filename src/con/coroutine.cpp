@@ -20,10 +20,10 @@ namespace cxx {
             scheduler::task**   tasks;
             int                 ntask;
             static size_t       idgen;
-            int                 stack;
+
             running() :
                 count(0), shift(0), status(0), curr(NULL), ctxt(NULL),
-                tasks(NULL), ntask(0), stack(con::stack::default_size())
+                tasks(NULL), ntask(0)
             {
                 ctxt = new scheduler::context();
                 ready.head = NULL;
@@ -85,11 +85,10 @@ namespace cxx {
             return (uvlong)tv.tv_sec*1000*1000*1000 + tv.tv_usec*1000;
         }
 
-        scheduler::scheduler(int stack_size)
+        scheduler::scheduler()
             : running_(NULL), waiting_(NULL), sleeping_(NULL)
         {
             running_ = new scheduler::running();
-            running_->stack = stack_size;
         }
 
         scheduler::~scheduler()
@@ -109,9 +108,7 @@ namespace cxx {
             z |= y;
             t = (scheduler::task* )z;
 
-            coroutine c;
-            c.task_ = t;
-            c.sche_ = t->engine;
+            coroutine c(t->engine, t);
             t->startfn(&c, t->startarg);
             c.stop(0);
         }
@@ -183,9 +180,9 @@ namespace cxx {
             running_->count++;
 
             if(running_->ntask % 64 == 0){
-                running_->tasks = (task** )
-                                  realloc(running_->tasks,
-                                          (running_->ntask + 64) * sizeof(running_->tasks[0]));
+                running_->tasks =
+                        (task** )realloc(running_->tasks,
+                                         (running_->ntask + 64) * sizeof(running_->tasks[0]));
                 if(running_->tasks == nil){
                     fprint(2, "out of memory\n");
                     abort();
@@ -473,6 +470,11 @@ namespace cxx {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        coroutine::coroutine(scheduler *s, scheduler::task *t)
+            : sche_(s), task_(t)
+        {
+        }
+
         scheduler* coroutine::sched()
         {
             return sche_;

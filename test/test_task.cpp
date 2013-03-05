@@ -24,7 +24,7 @@ void dice(cxx::con::coroutine* c, void* p)
 
 TEST(coroutine, dice)
 {
-    cxx::con::scheduler c(256*1024);
+    cxx::con::scheduler c;
 
     for(long i = 0; i < 5; ++i) {
         c.spawn(dice, (void* )i, cxx::con::stack::minimum_size());
@@ -52,7 +52,7 @@ TEST(coroutine, perfmance)
     int cpu[5] = { 0, 1, 2, 3, 4 };
     int ret = cxx::sys::threadcontrol::policy(1, cpu + 1);
 
-    cxx::con::scheduler c(256*1024);
+    cxx::con::scheduler c;
 
     for(long i = 0; i < 5; ++i) {
         c.spawn(perf, (void* )i, cxx::con::stack::minimum_size());
@@ -70,9 +70,9 @@ void delay(cxx::con::coroutine* c, void *p)
     printf("delay %d (%d) is done\n", c->getid(), ms);
 }
 
-TEST(task, delay)
+TEST(coroutine, delay)
 {
-    cxx::con::scheduler c(256*1024);
+    cxx::con::scheduler c;
 
     for(long i = 0; i < 3; ++i) {
         c.spawn(delay, (void* )i, cxx::con::stack::default_size());
@@ -96,10 +96,8 @@ void asleep(cxx::con::coroutine* c, void* p)
     printf("notified: %d\n", (long)p);
 }
 
-void notify(cxx::con::coroutine* c, void* p)
+void posting(cxx::con::coroutine* c, void* p)
 {
-    c->yield();
-
     printf("posting\n");
 
     int r = c->sched()->post(1, 1);
@@ -115,9 +113,16 @@ void notify(cxx::con::coroutine* c, void* p)
     ASSERT_EQ(r, 0);
 }
 
-TEST(task, wait_post)
+void notify(cxx::con::coroutine* c, void* p)
 {
-    cxx::con::scheduler c(256*1024);
+    //c->yield();
+
+    c->sched()->spawn(posting, NULL, 32768);
+}
+
+TEST(coroutine, wait_post)
+{
+    cxx::con::scheduler c;
 
     for(long i = 1; i < 3; ++i) {
         c.spawn(asleep, (void* )i, 32768);

@@ -148,11 +148,11 @@ namespace cxx {
             STACK = 8192
         };
 
-        struct coroutine::context {
+        struct scheduler::context {
             ucontext_t  uc;
         };
 
-        struct coroutine::task {
+        struct scheduler::task {
             uint	stksize;    // move stksize to the header of stack to prevent be overwriten
             char	name[256];	// offset known to acid
             char	state[256];
@@ -160,7 +160,7 @@ namespace cxx {
             task	*prev;
             task	*allnext;
             task	*allprev;
-            coroutine::context	context;
+            scheduler::context	context;
             uvlong	alarmtime;
             uint	id;
             uchar	*stk;
@@ -168,10 +168,10 @@ namespace cxx {
             int     alltaskslot;
             int     system;
             int     ready;
-            void	(*startfn)(void*);
+            void	(*startfn)(coroutine*, void*);
             void*   startarg;
             void	*udata;
-            coroutine* engine;
+            scheduler* engine;
         };
 
     }

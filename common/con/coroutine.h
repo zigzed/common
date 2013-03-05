@@ -9,104 +9,99 @@
 namespace cxx {
     namespace con {
 
-        typedef void (*taskptr)(void*);
+        class coroutine;
+        typedef void (*taskptr)(coroutine*, void* );
 
-        class taskarg {
+        class stack {
         public:
-            static void* p1(void* );
-            static void* p2(void* );
+            /** coroutine's default stack size (16 pages) */
+            static size_t default_size();
+            /** coroutine's minimum stack size (2 pages) */
+            static size_t minimum_size();
+            /** coroutine's maximum stack size (same as process's limit) */
+            static size_t maximum_size();
         };
 
-        class coroutine {
+        /** scheduler is coroutine's run environment */
+        class scheduler {
         public:
             struct task;
             struct context;
 
-            explicit coroutine(int stack_size);
-            ~coroutine();
+            explicit scheduler(int stack_size);
+            ~scheduler();
 
             /** create a coroutine task from the given function */
-            task*   create(taskptr func, void* arg, int stack);
-            task*   getcur();
+            task*   spawn(taskptr func, void* arg, int stack);
+            /** get the current task */
+            task*   ctask();
+            /** give up the CPU for the current coroutine task */
+            int     yield();
+            /** give up the CPU for at least 'ms' milliseconds */
+            int     delay(int ms);
 
             /** starting the coroutine with entry function fn */
-            int     start(void (*fn)(int, char** ), int argc, char** argv);
-
-            static task*        create(void* task, taskptr func, void *arg, int stack);
-
-            /** give up the CPU and switch to other tasks
-             * return number of other tasks will be scheduled run
-             */
-            static int          yield(void* task);
-
-            /** give up the CPU and switch to other tasks at least ms milliseconds */
-            static int          delay(void* task, int ms);
-
-            /** return a pointer to a per-task void* pointer */
-            static void**       data(void* task);
-
-            /** set name of the task */
-            static void         name(void* task, const char* fmt, ...);
-
-            /** set state of the task */
-            static void         state(void* task, const char *fmt, ...);
-
-            /** get name of the task */
-            static const char*  name(void* task);
-
-            /** get info of the task */
-            static const char*  state(void* task);
-
-            /** get id of the task */
-            static unsigned int id(void* task);
-
-            /** stop the task */
-            static void         stop(void* task, int status);
-
-            /** quit the coroutine */
-            static void         quit(void* task, int status);
+            int     start();
+            /** quit the scheduler */
+            void    quit (int status);
 
             /** wait for object 'object' */
-            static void         wait(void* task, int object);
+            void    wait(int object);
             /** wakeup the task that wait for 'object' */
-            static int          post(void* task, int object, int all);
-
-            static int          check(void* task);
-            static void         system(void* task);
+            int     post(int object, int all);
         private:
-            struct task_list {
+            friend class coroutine;
+
+            struct tasklist {
                 task* head;
                 task* tail;
             };
 
-            static void add_task(task_list& list, task* t);
-            static void del_task(task_list& list, task* t);
-            static void sleeptsk(void* arg);
+            static void taskmain(unsigned int y, unsigned int x);
+            static void add_task(tasklist& list, task* t);
+            static void del_task(tasklist& list, task* t);
+            static void sleeptsk(coroutine* c, void* arg);
+            static void setstate(task* t, const char* fmt, ...);
 
             int     schedule();
             void    taskready(task* t);
             void    taskshift();
-            void    ctxtshift(task* v, context* f, context* t);
+            void    ctxtshift(context* f, context* t);
             void    needstack(task* t, int n);
             task*   taskalloc(taskptr p, void* arg, unsigned int stack);
 
-            int         taskcounts_;
-            int         taskswitch_;
-            int         taskexit_;
-            task*       running_;
-            context*    pending_;
-            // active (running) tasks
-            task_list   actives_;
-            // sleeping tasks
-            task_list   sleeping_;
-            task**      alltasks_;
-            int         nalltask_;
-            static int  idgen_;
-            int         stack_;
-            int         sleepcnt_;
+            struct running;
+            struct waiting;
+            struct sleeping;
 
-            typedef std::map<int, task_list >   wait_t;
-            wait_t      waiting_;
+            running*    running_;
+            waiting*    waiting_;
+            sleeping*   sleeping_;
+        };
+
+        /** coroutine is a task running under scheduler */
+        class coroutine {
+        public:
+            /** give up the CPU to other coroutine tasks */
+            int         yield();
+            /** give up the CPU to other coroutine at least for 'ms' milliseconds */
+            int         delay(int ms);
+            /** coroutine is ready for schedule */
+            void        ready();
+
+            void**      data();
+            void        state(const char* fmt, ...);
+            const char* state() const;
+            size_t      getid() const;
+            scheduler*  sched();
+            void        name (const char* fmt, ...);
+            const char* name () const;
+            void        stop (int status);
+            void        system();
+        private:
+            friend class scheduler;
+            scheduler*          sche_;
+            scheduler::task*    task_;
         };
     }
 }

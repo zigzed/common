@@ -4,12 +4,78 @@
 #include "common/con/coroutine.h"
 #include "context.h"
 #include "common/sys/threads.h"
+#include <sys/resource.h>
 
 namespace cxx {
     namespace con {
 
-        int coroutine::idgen_ = 0;
+        ////////////////////////////////////////////////////////////////////////
+        struct scheduler::running {
+            int                 count;
+            int                 shift;
+            int                 status;
+            scheduler::task*    curr;
+            scheduler::context* ctxt;
+            scheduler::tasklist ready;
+            scheduler::task**   tasks;
+            int                 ntask;
+            static size_t       idgen;
+            int                 stack;
+            running() :
+                count(0), shift(0), status(0), curr(NULL), ctxt(NULL),
+                tasks(NULL), ntask(0), stack(con::stack::default_size())
+            {
+                ctxt = new scheduler::context();
+                ready.head = NULL;
+                ready.tail = NULL;
+            }
+            ~running() {
+                delete ctxt;
+                free(tasks);
+            }
+        };
 
+        struct scheduler::waiting {
+            typedef std::map<int, scheduler::tasklist >    wait_t;
+            wait_t              block;
+        };
+
+        struct scheduler::sleeping {
+            scheduler::tasklist sleep;
+            int                 count;
+            sleeping() : count(0) {
+                sleep.head = NULL;
+                sleep.tail = NULL;
+            }
+        };
+
+        size_t scheduler::running::idgen   = 0;
+
+        ////////////////////////////////////////////////////////////////////////
+        static size_t page_size()
+        {
+            return sysconf(_SC_PAGESIZE);
+        }
+
+        size_t stack::default_size()
+        {
+            size_t s = 16 * page_size();
+            return s > maximum_size() ? maximum_size() : s;
+        }
+
+        size_t stack::minimum_size()
+        {
+            return 2 * page_size();
+        }
+
+        size_t stack::maximum_size()
+        {
+            rlimit  lim;
+            getrlimit(RLIMIT_STACK, &lim);
+            return lim.rlim_cur;
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         static uvlong nsec()
         {
             struct timeval tv;
@@ -19,69 +85,46 @@ namespace cxx {
             return (uvlong)tv.tv_sec*1000*1000*1000 + tv.tv_usec*1000;
         }
 
-        coroutine::coroutine(int stack_size)
-            : taskcounts_(0), taskswitch_(0), taskexit_(0),
-              running_(NULL), pending_(NULL), alltasks_(NULL),
-              nalltask_(0), stack_(stack_size), sleepcnt_(-1)
+        scheduler::scheduler(int stack_size)
+            : running_(NULL), waiting_(NULL), sleeping_(NULL)
         {
-            pending_ = new coroutine::context();
-            actives_.head = NULL;
-            actives_.tail = NULL;
-            sleeping_.head = NULL;
-            sleeping_.tail = NULL;
+            running_ = new scheduler::running();
+            running_->stack = stack_size;
         }
 
-        coroutine::~coroutine()
+        scheduler::~scheduler()
         {
-            task* t = actives_.head;
-            task* p = t;
-            while(t) {
-                p = p->next;
-                del_task(actives_, t);
-                t = p;
-            }
-            delete pending_;
-            free(alltasks_);
+            delete sleeping_;
+            delete waiting_;
+            delete running_;
         }
 
-
-        void* taskarg::p1(void * t)
+        void scheduler::taskmain(uint y, uint x)
         {
-            coroutine::task* p = (coroutine::task* )t;
-            return p;
-        }
-
-        void* taskarg::p2(void * t)
-        {
-            coroutine::task* p = (coroutine::task* )t;
-            return p->startarg;
-        }
-
-        static void task_start(uint y, uint x)
-        {
-            coroutine::task* t;
+            scheduler::task* t;
             ulong z;
 
             z = x << 16;
             z <<= 16;
             z |= y;
-            t = (coroutine::task* )z;
+            t = (scheduler::task* )z;
 
-            t->startfn(t);
-
-            coroutine::check(t);
-            coroutine::stop(t, 0);
+            coroutine c;
+            c.task_ = t;
+            c.sche_ = t->engine;
+            t->startfn(&c, t->startarg);
+            c.stop(0);
         }
 
-        coroutine::task* coroutine::taskalloc(taskptr fn, void* arg, unsigned int stack)
+        scheduler::task* scheduler::taskalloc(taskptr fn, void* arg, unsigned int stack)
         {
-            coroutine::task *t;
+            scheduler::task *t;
             sigset_t zero;
             uint x, y;
             ulong z;
 
             /* allocate the task and stack together */
-            t = (coroutine::task* )malloc(sizeof *t+stack);
+            t = (scheduler::task* )malloc(sizeof *t+stack);
             if(t == nil){
                 fprint(2, "taskalloc malloc: %r\n");
                 abort();
@@ -89,7 +132,7 @@ namespace cxx {
             memset(t, 0, sizeof *t);
             t->stk = (uchar*)(t+1);
             t->stksize = stack;
-            t->id = ++idgen_;
+            t->id = ++scheduler::running::idgen;
             t->startfn = fn;
             t->startarg = arg;
             t->engine = this;
@@ -126,39 +169,35 @@ namespace cxx {
             z >>= 16;	/* hide undefined 32-bit shift from 32-bit compilers */
             x = z>>16;
 
-            makecontext(&t->context.uc, (void(*)())task_start, 2, y, x);
+            makecontext(&t->context.uc, (void(*)())taskmain, 2, y, x);
 
             return t;
         }
 
-        coroutine::task* coroutine::create(taskptr fn, void* arg, int stack)
+        scheduler::task* scheduler::spawn(taskptr fn, void* arg, int stack)
         {
             int id;
             task *t;
 
             t = taskalloc(fn, arg, stack);
-            taskcounts_++;
+            running_->count++;
 
-            if(nalltask_%64 == 0){
-                alltasks_ = (task** )realloc(alltasks_, (nalltask_+64)*sizeof(alltasks_[0]));
-                if(alltasks_ == nil){
+            if(running_->ntask % 64 == 0){
+                running_->tasks = (task** )
+                                  realloc(running_->tasks,
+                                          (running_->ntask + 64) * sizeof(running_->tasks[0]));
+                if(running_->tasks == nil){
                     fprint(2, "out of memory\n");
                     abort();
                 }
             }
-            t->alltaskslot = nalltask_;
-            alltasks_[nalltask_++] = t;
+            t->alltaskslot = running_->ntask;
+            running_->tasks[running_->ntask++] = t;
             taskready(t);
             return t;
         }
 
-        coroutine::task* coroutine::create(void *v, taskptr func, void *arg, int stack)
-        {
-            task* p = (task* )v;
-            return p->engine->create(func, arg, stack);
-        }
-
-        void coroutine::ctxtshift(task *v, context *f, context *t)
+        void scheduler::ctxtshift(context *f, context *t)
         {
             if(swapcontext(&f->uc, &t->uc) < 0){
                 fprint(2, "swapcontext failed: %r\n");
@@ -166,34 +205,40 @@ namespace cxx {
             }
         }
 
-        int coroutine::yield(void *v)
+        void scheduler::setstate(task *t, const char *fmt, ...)
+        {
+            va_list arg;
+            va_start(arg, fmt);
+            vsnprint(t->state, sizeof(t->state), fmt, arg);
+            va_end(arg);
+        }
+
+        int scheduler::yield()
         {
             int n;
 
-            task* t = (task* )v;
-            n = t->engine->taskswitch_;
-            t->engine->taskready(t->engine->running_);
-            state(t, "yield");
-            t->engine->taskshift();
-
-            return t->engine->taskswitch_ - n - 1;
+            n = running_->shift;
+            taskready(running_->curr);
+            setstate(running_->curr, "yield");
+            taskshift();
+            return running_->shift - n - 1;
         }
 
-        void coroutine::sleeptsk(void* arg)
+        void scheduler::sleeptsk(coroutine* c, void* arg)
         {
-            coroutine::task* t = (coroutine::task* )taskarg::p1(arg);
-            coroutine* c = t->engine;
             int i, ms;
             uvlong now;
+            task* t;
+            scheduler* s = c->sched();
 
-            coroutine::system(t);
-            coroutine::name(t, "sleep");
+            c->system();
+            c->name("sleep");
 
             for(;;) {
                 // let everyone else run
-                while(coroutine::yield(c->running_) > 0)
+                while(s->yield() > 0)
                     ;
-                if((t=t->engine->sleeping_.head) == nil)
+                if((t=s->sleeping_->sleep.head) == nil)
                     ms = 1000;
                 else{
                     /* sleep at most 5s */
@@ -209,38 +254,39 @@ namespace cxx {
 
                 // we're the only one runnable
                 now = nsec();
-                while((t = t->engine->sleeping_.head) && now >= t->alarmtime) {
-                    del_task(t->engine->sleeping_, t);
-                    if(!t->system && --t->engine->sleepcnt_ == 0)
-                        t->engine->taskcounts_--;
-                    t->engine->taskready(t);
+                while((t = s->sleeping_->sleep.head) && now >= t->alarmtime) {
+                    del_task(s->sleeping_->sleep, t);
+                    if(!t->system && --s->sleeping_->count == 0)
+                        s->running_->count--;
+                    s->taskready(t);
                 }
             }
         }
 
-        int coroutine::delay(void *v, int ms)
+        int scheduler::delay(int ms)
         {
             uvlong when, now;
-            task* t = (task* )v;
-            task_list&  sleeping = t->engine->sleeping_;
-            task*       running = t->engine->running_;
+            task* running = running_->curr;
+            task* t;
 
-            if(t->engine->sleepcnt_ == -1) {
-                t->engine->sleepcnt_ = 0;
-                t->engine->create(sleeptsk, NULL, 32768);
+            if(!sleeping_) {
+                sleeping_ = new scheduler::sleeping();
+                spawn(sleeptsk, NULL, stack::default_size());
             }
+
+            tasklist& s = sleeping_->sleep;
 
             now = nsec();
             when = now + (uvlong)ms * 1000000;
-            for(t = sleeping.head; t != nil && t->alarmtime < when; t = t->next)
+            for(t = s.head; t != nil && t->alarmtime < when; t = t->next)
                 ;
             if(t) {
                 running->prev = t->prev;
                 running->next = t;
             }
             else {
-                running->prev = sleeping.tail;
-                running->next = (coroutine::task* )nil;
+                running->prev = s.tail;
+                running->next = (scheduler::task* )nil;
             }
 
             t = running;
@@ -248,90 +294,65 @@ namespace cxx {
             if(t->prev)
                 t->prev->next = t;
             else
-                sleeping.head = t;
+                s.head = t;
             if(t->next)
                 t->next->prev = t;
             else
-                sleeping.tail = t;
+                s.tail = t;
 
-            if(!t->system && t->engine->sleepcnt_++ == 0)
-                t->engine->taskcounts_++;
-            t->engine->taskshift();
+            if(!t->system && sleeping_->count++ == 0)
+                running_->count++;
+            taskshift();
 
             return (nsec() - now) / 1000000;
         }
 
-        void coroutine::taskshift()
+        void scheduler::taskshift()
         {
-            needstack(running_, 0);
-            ctxtshift(running_, &running_->context, pending_);
+            needstack(ctask(), 0);
+            ctxtshift(&ctask()->context, running_->ctxt);
         }
 
-        void** coroutine::data(void *v)
+        void scheduler::quit(int status)
         {
-            task* t = (task* )v;
-            return &t->udata;
-        }
-
-        unsigned int coroutine::id(void *v)
-        {
-            task* t = (task* )v;
-            return t->id;
-        }
-
-        void coroutine::stop(void *v, int status)
-        {
-            task* t = (task* )v;
-            if(t && t->engine) {
-                t->exiting = 1;
-                t->engine->taskexit_ = status;
-                t->engine->taskshift();
-            }
-        }
-
-        void coroutine::quit(void* v, int status)
-        {
-            task* p = (task* )v;
-            task* n = p;
-            p->engine->taskexit_ = status;
+            running_->status = status;
+            task* p = running_->ready.head;
             while(p) {
                 p->exiting = 1;
-                p = p->prev;
-            }
-            while(n) {
-                n->exiting = 1;
-                n = n->next;
+                p = p->next;
             }
         }
 
-        void coroutine::wait(void *v, int object)
+        void scheduler::wait(int object)
         {
-            task* p = (task* )v;
-            coroutine* c = p->engine;
+            if(!waiting_) {
+                waiting_ = new scheduler::waiting();
+            }
 
-            wait_t::iterator it;
-            while((it = c->waiting_.find(object)) == c->waiting_.end()) {
-                task_list t;
+            waiting::wait_t::iterator it;
+            while((it = waiting_->block.find(object)) == waiting_->block.end()) {
+                tasklist t;
                 t.head = NULL;
                 t.tail = NULL;
-                c->waiting_.insert(std::make_pair(object, t));
+                waiting_->block.insert(std::make_pair(object, t));
             }
-            task_list& w = it->second;
+            tasklist& w = it->second;
 
-            add_task(w, c->running_);
-            state(v, "wait");
-            c->taskshift();
+            add_task(w, running_->curr);
+            setstate(running_->curr, "wait");
+            taskshift();
         }
 
-        int coroutine::post(void *v, int object, int all)
+        int scheduler::post(int object, int all)
         {
             int i = 0;
-            task* p = (task* )v;
-            coroutine* c = p->engine;
 
-            wait_t::iterator it = c->waiting_.find(object);
-            if(it != c->waiting_.end()) {
-                task_list& w = it->second;
+            if(!waiting_)
+                return 0;
+
+            waiting::wait_t::iterator it = waiting_->block.find(object);
+            if(it != waiting_->block.end()) {
+                tasklist& w = it->second;
 
                 for(i = 0; ; i++) {
                     if(i == 1 && !all) {
@@ -341,43 +362,18 @@ namespace cxx {
                     if((t = w.head) == nil)
                         break;
                     del_task(w, t);
-                    c->taskready(t);
+                    taskready(t);
                 }
             }
             return i;
         }
 
-        int coroutine::check(void* v)
+        scheduler::task* scheduler::ctask()
         {
-            int local_variable;
-            task* t = (task* )v;
-
-            if((uchar* )&local_variable > t->stk + t->stksize - 64) {
-                print("out of bound 1: %p, %p, %d\n", &local_variable, t->stk, t->stksize);
-                return (uchar* )&local_variable - t->stk - t->stksize - 64;
-            }
-            if((uchar* )&local_variable < t->stk + 8) {
-                print("out of bound 2: %p, %p, %d\n", &local_variable, t->stk, t->stksize);
-                return t->stk + 8 - (uchar* )&local_variable;
-            }
-            return 0;
+            return running_->curr;
         }
 
-        void coroutine::system(void *v)
-        {
-            task* t = (task* )v;
-            if(!t->engine->running_->system) {
-                t->engine->running_->system = 1;
-                --t->engine->taskcounts_;
-            }
-        }
-
-        coroutine::task* coroutine::getcur()
-        {
-            return running_;
-        }
-
-        void coroutine::needstack(coroutine::task *t, int n)
+        void scheduler::needstack(scheduler::task *t, int n)
         {
             if((char*)&t <= (char*)t->stk
                     || (char*)&t - (char*)t->stk < 256+n){
@@ -386,15 +382,15 @@ namespace cxx {
             }
         }
 
-        void coroutine::taskready(task *t)
+        void scheduler::taskready(task *t)
         {
             t->ready = 1;
-            add_task(actives_, t);
+            add_task(running_->ready, t);
         }
 
-        void coroutine::add_task(task_list& list, task *t)
+        void scheduler::add_task(tasklist& list, task *t)
         {
-            task_list* l = &list;
+            tasklist* l = &list;
             if(l->tail) {
                 l->tail->next = t;
                 t->prev = l->tail;
@@ -407,9 +403,9 @@ namespace cxx {
             t->next = (task* )nil;
         }
 
-        void coroutine::del_task(task_list& list, task *t)
+        void scheduler::del_task(tasklist& list, task *t)
         {
-            task_list* l = &list;
+            tasklist* l = &list;
             if(t->prev)
                 t->prev->next = t->next;
             else
@@ -420,28 +416,12 @@ namespace cxx {
                 l->tail = t->prev;
         }
 
-        typedef void (*taskentry)(int, char** );
-
-        struct args {
-            taskentry   func;
-            int         argc;
-            char**      argv;
-        };
-
-        static void taskmainstart(void* arg)
-        {
-            void* p1 = taskarg::p1(arg);
-            void* p2 = taskarg::p2(arg);
-            args* a = (args* )p2;
-            a->func(a->argc, a->argv);
-        }
-
         static void taskinfo(int s)
         {
             // dothing
         }
 
-        int coroutine::start(void (*fn)(int, char **), int argc, char **argv)
+        int scheduler::start()
         {
             struct sigaction sa, osa;
 
@@ -454,79 +434,129 @@ namespace cxx {
             sigaction(SIGINFO, &sa, &osa);
 #endif
 
-            args arg;
-            arg.func = fn;
-            arg.argc = argc;
-            arg.argv = argv;
-
-            create(taskmainstart, &arg, stack_);
             return schedule();
         }
 
-        int coroutine::schedule()
+        int scheduler::schedule()
         {
             int i;
             task *t;
 
             for(;;){
-                if(taskcounts_ == 0)
-                    return (taskexit_);
-                t = actives_.head;
+                if(running_->count == 0)
+                    return (running_->status);
+                t = running_->ready.head;
                 if(t == nil){
-                    fprint(2, "no runnable tasks! %d tasks stalled\n", taskcounts_);
+                    fprint(2, "no runnable tasks! %d tasks stalled\n", running_->count);
                     return (1);
                 }
-                del_task(actives_, t);
+                del_task(running_->ready, t);
 
                 if(!t->exiting) {
                     t->ready = 0;
-                    running_ = t;
-                    taskswitch_++;
+                    running_->curr = t;
+                    running_->shift++;
 
-                    ctxtshift(t, pending_, &t->context);
+                    ctxtshift(running_->ctxt, &t->context);
                 }
 
-                running_ = (task* )nil;
+                running_->curr = (task* )nil;
                 if(t->exiting){
                     if(!t->system)
-                        taskcounts_--;
+                        running_->count--;
                     i = t->alltaskslot;
-                    alltasks_[i] = alltasks_[--nalltask_];
-                    alltasks_[i]->alltaskslot = i;
+                    running_->tasks[i] = running_->tasks[--running_->ntask];
+                    running_->tasks[i]->alltaskslot = i;
                     free(t);
                 }
             }
         }
 
-        void coroutine::name(void *v, const char *fmt, ...)
+        ////////////////////////////////////////////////////////////////////////
+        scheduler* coroutine::sched()
+        {
+            return sche_;
+        }
+
+        int coroutine::yield()
+        {
+            scheduler* sche = sched();
+
+            return sche->yield();
+        }
+
+        int coroutine::delay(int ms)
+        {
+            scheduler* sche = sched();
+            return sche->delay(ms);
+        }
+
+        void coroutine::ready()
+        {
+            scheduler* sche = sched();
+            sche->taskready(task_);
+        }
+
+        void coroutine::system()
+        {
+            scheduler::task* t = this->task_;
+            scheduler* sche = sched();
+            if(!t->system) {
+                t->system = 1;
+                --sche->running_->count;
+            }
+        }
+
+        void** coroutine::data()
+        {
+            return &task_->udata;
+        }
+
+        size_t coroutine::getid() const
+        {
+            return task_->id;
+        }
+
+        void coroutine::stop(int status)
+        {
+            scheduler::task* t = this->task_;
+            scheduler* sche = sched();
+            if(t && sche) {
+                t->exiting = 1;
+                sche->running_->status = status;
+                sche->taskshift();
+            }
+        }
+
+        void coroutine::name(const char *fmt, ...)
         {
             va_list arg;
-            task* t = (task* )v;
+            scheduler::task* t = task_;
 
             va_start(arg, fmt);
             vsnprint(t->name, sizeof(t->name), fmt, arg);
             va_end(arg);
         }
 
-        const char* coroutine::name(void *v)
+        const char* coroutine::name() const
         {
-            task* t = (task* )v;
+            scheduler::task* t = task_;
             return t->name;
         }
 
-        void coroutine::state(void *v, const char *fmt, ...)
+        void coroutine::state(const char *fmt, ...)
         {
             va_list arg;
-            task* t = (task* )v;
+            scheduler::task* t = task_;
 
             va_start(arg, fmt);
             vsnprint(t->state, sizeof(t->state), fmt, arg);
             va_end(arg);
         }
 
-        const char* coroutine::state(void *v)
+        const char* coroutine::state() const
         {
-            task* t = (task* )v;
+            scheduler::task* t = task_;
             return t->state;
         }
 

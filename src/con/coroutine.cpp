@@ -483,7 +483,6 @@ namespace cxx {
         int coroutine::yield()
         {
             scheduler* sche = sched();
-
             return sche->yield();
         }
 
@@ -495,8 +494,12 @@ namespace cxx {
 
         void coroutine::ready()
         {
-            scheduler* sche = sched();
-            sche->taskready(task_);
+            sched()->taskready(task_);
+        }
+
+        void coroutine::shift()
+        {
+            sched()->taskshift();
         }
 
         void coroutine::system()
@@ -507,6 +510,11 @@ namespace cxx {
                 t->system = 1;
                 --sche->running_->count;
             }
+        }
+
+        scheduler::task* coroutine::ctask() const
+        {
+            return task_;
         }
 
         void** coroutine::data()

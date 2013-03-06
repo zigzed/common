@@ -3,6 +3,7 @@
 #include "common/config.h"
 #include "common/gtest/gtest.h"
 #include "common/con/coroutine.h"
+#include "common/con/channel.h"
 #include "common/sys/threads.h"
 #include <sys/time.h>
 
@@ -132,6 +133,68 @@ TEST(coroutine, wait_post)
     c.start();
 
     printf("sleep done\n");
+}
+
+typedef cxx::con::channel<int > chan;
+
+void sender(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan *)p;
+    ch->send(c, c->getid());
+    printf("sender: %d done\n", c->getid());
+}
+
+void receiver(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan* )p;
+    int v;
+    int i = 0;
+    while(i++ < 10 && ch->recv(c, v)) {
+        printf("received: %d, %d\n", i,  v);
+    }
+}
+
+TEST(coroutine, channel)
+{
+    cxx::con::scheduler c;
+    chan    ch(3);
+
+    for(long i = 0; i < 10; ++i) {
+        c.spawn(sender, &ch);
+    }
+
+    c.spawn(receiver, &ch);
+    c.start();
+
+    printf("channel done\n");
+}
+
+void perf_send(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan *)p;
+    for(size_t i = 0; i < 1000000; ++i) {
+        ch->send(c, i);
+    }
+}
+
+void perf_recv(cxx::con::coroutine* c, void *p)
+{
+    chan* ch = (chan *)p;
+    for(size_t i = 0; i < 1000000; ++i) {
+        int x = -1;
+        ch->recv(c, x);
+        ASSERT_EQ(x, i);
+    }
+}
+
+TEST(coroutine, performance_chan)
+{
+    cxx::con::scheduler c;
+    chan    ch(256);
+
+    c.spawn(perf_send, &ch);
+    c.spawn(perf_recv, &ch);
+    c.start();
 }
 
 

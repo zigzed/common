@@ -16,6 +16,9 @@ namespace cxx {
             long add(long inc);
             /** atomic subtraction. return the old value */
             long sub(long dec);
+
+            long xchg(long val);
+            void store(long val);
             operator long() const;
         private:
             atomic_t(const atomic_t& rhs);

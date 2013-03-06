@@ -32,7 +32,7 @@ namespace cxx {
             ~scheduler();
 
             /** create a coroutine task from the given function */
-            task*   spawn(taskptr func, void* arg, int stack);
+            task*   spawn(taskptr func, void* arg, int stack = stack::default_size());
             /** get the current task */
             task*   ctask();
             /** give up the CPU for the current coroutine task */
@@ -91,6 +91,7 @@ namespace cxx {
             int         delay(int ms);
             /** coroutine is ready for schedule */
             void        ready();
+            void        shift();
 
             void**      data();
             void        state(const char* fmt, ...);
@@ -101,6 +102,7 @@ namespace cxx {
             const char* name () const;
             void        stop (int status);
             void        system();
+            scheduler::task* ctask() const;
         private:
             coroutine(scheduler* s, scheduler::task* t);
             coroutine(const coroutine& rhs);

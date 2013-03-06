@@ -19,6 +19,17 @@
         return r;
     }
 
+    static long atomic_exchange(long& cur, long val)
+    {
+        __asm__
+        (
+            "xchgq %0, %1"
+            : "+r" (val), "+m" (cur)
+        );
+        return val;
+    }
+
+
 namespace cxx {
     namespace sys {
 
@@ -45,6 +56,16 @@ namespace cxx {
         {
             dec *= -1;
             return atomic_exchange_and_add(&value_, dec);
+        }
+
+        long atomic_t::xchg(long val)
+        {
+            return atomic_exchange(value_, val);
+        }
+
+        void atomic_t::store(long val)
+        {
+            xchg(val);
         }
 
         atomic_t::operator long() const
@@ -111,6 +132,16 @@ namespace cxx {
         {
             dec *= -1;
             return InterlockedExchangeAdd((LONG* )&value_, dec);
+        }
+
+        long atomic_t::xchg(long val)
+        {
+            return InterlockedExchange((LONG* )&value_, val);
+        }
+
+        void atomic_t::store(long val)
+        {
+            xchg(val);
         }
 
         atomic_t::operator long() const

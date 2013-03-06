@@ -5,6 +5,8 @@
 #define CXX_CON_COROUTINE_H
 #include <stddef.h>
 #include <map>
+#include <vector>
+#include "common/sys/threads.h"
 
 namespace cxx {
     namespace con {
@@ -41,12 +43,12 @@ namespace cxx {
             int     delay(int ms);
 
             /** starting the coroutine with entry function fn */
-            int     start();
+            void    start();
             /** quit the scheduler */
             void    quit (int status);
 
             /** wait for object 'object' */
-            void    wait(int object);
+            bool    wait(int object, int ms);
             /** wakeup the task that wait for 'object' */
             int     post(int object, int all);
         private:
@@ -64,6 +66,7 @@ namespace cxx {
             static void add_task(tasklist& list, task* t);
             static void del_task(tasklist& list, task* t);
             static void sleeptsk(coroutine* c, void* arg);
+            static void blocktsk(coroutine* c, void* arg);
             static void setstate(task* t, const char* fmt, ...);
 
             int     schedule();
@@ -112,6 +115,27 @@ namespace cxx {
             scheduler*          sche_;
             scheduler::task*    task_;
         };
+
+        class scheduler_group {
+        public:
+            typedef scheduler*  sched_t;
+
+            explicit scheduler_group(size_t count);
+            ~scheduler_group();
+
+            void            start();
+            void            stop(int status);
+            size_t          size() const;
+            sched_t&        operator[](size_t i);
+            const sched_t&  operator[](size_t i) const;
+        private:
+            typedef std::vector<sched_t >           groups_t;
+            typedef std::vector<cxx::sys::thread >  thread_t;
+            size_t      size_;
+            groups_t    sche_;
+            thread_t    thrd_;
+        };
+
     }
 }
 

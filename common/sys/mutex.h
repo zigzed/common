@@ -20,6 +20,7 @@ namespace cxx {
             typedef CRITICAL_SECTION    plainmutex_t;
             typedef HANDLE              triedmutex_t;
             typedef HANDLE              timedmutex_t;
+            #define spinlock_t          volatile int;
             struct rwlock_t {
                 HANDLE  rdevent;
                 HANDLE  wtmutex;
@@ -32,6 +33,7 @@ namespace cxx {
                 pthread_mutexattr_t	mtxattr;
             };
             typedef	pthread_mutex_t		triedmutex_t;
+            typedef pthread_spinlock_t  spinlock_t;
 
             struct timedmutex_t {
                 pthread_mutex_t	mutex;
@@ -147,6 +149,27 @@ namespace cxx {
         private:
             null_mutex(const null_mutex& );
             null_mutex& operator= (const null_mutex& );
+        };
+
+        // a spinlock for short duration
+        // NOTE: spinlock is not reentrant!!!
+        class spin_mutex {
+            friend class detail::syncobj<spin_mutex >;
+        public:
+            typedef detail::scopelock<spin_mutex>   scopelock;
+            typedef detail::triedlock<spin_mutex>   triedlock;
+
+            spin_mutex();
+            ~spin_mutex();
+
+            void acquire();
+            void release();
+            bool trylock();
+        private:
+            spin_mutex(const spin_mutex& );
+            spin_mutex& operator= (const spin_mutex& );
+
+            detail::spinlock_t  locker;
         };
 
         class rwlock {

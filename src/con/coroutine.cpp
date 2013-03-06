@@ -5,6 +5,7 @@
 #include "context.h"
 #include "common/sys/threads.h"
 #include <sys/resource.h>
+#include <set>
 
 namespace cxx {
     namespace con {
@@ -36,8 +37,11 @@ namespace cxx {
         };
 
         struct scheduler::waiting {
+            typedef std::pair<int, scheduler::task* >      pair_t;
             typedef std::map<int, scheduler::tasklist >    wait_t;
+            typedef std::set<pair_t >                      post_t;
             wait_t              block;
+            post_t              posts;
         };
 
         struct scheduler::sleeping {
@@ -268,7 +272,7 @@ namespace cxx {
 
             if(!sleeping_) {
                 sleeping_ = new scheduler::sleeping();
-                spawn(sleeptsk, NULL, stack::default_size());
+                spawn(sleeptsk, NULL, stack::minimum_size());
             }
 
             tasklist& s = sleeping_->sleep;
@@ -320,11 +324,26 @@ namespace cxx {
             }
         }
 
-        void scheduler::wait(int object)
+        void scheduler::blocktsk(coroutine* c, void* arg)
+        {
+            scheduler* s = c->sched();
+            s->delay(50);
+            for(scheduler::waiting::wait_t::iterator it = s->waiting_->block.begin();
+                it != s->waiting_->block.end(); ++it) {
+                s->post(it->first, 2);
+            }
+        }
+
+        bool scheduler::wait(int object, int ms)
         {
             if(!waiting_) {
                 waiting_ = new scheduler::waiting();
+                spawn(blocktsk, NULL, stack::minimum_size());
             }
+
+            uvlong when, now;
+            now = nsec();
+            when = now + (uvlong)ms * 1000000;
 
             waiting::wait_t::iterator it;
             while((it = waiting_->block.find(object)) == waiting_->block.end()) {
@@ -338,6 +357,18 @@ namespace cxx {
             add_task(w, running_->curr);
             setstate(running_->curr, "wait");
             taskshift();
+
+            scheduler::waiting::post_t::iterator st = waiting_->posts.find(std::make_pair(object, running_->curr));
+            if(st != waiting_->posts.end()) {
+                waiting_->posts.erase(st);
+                return true;
+            }
+            else {
+                while(nsec() < when) {
+                    yield();
+                }
+                return false;
+            }
         }
 
         int scheduler::post(int object, int all)
@@ -360,6 +391,9 @@ namespace cxx {
                         break;
                     del_task(w, t);
                     taskready(t);
+                    if(all != 2) {
+                        waiting_->posts.insert(std::make_pair(object, t));
+                    }
                 }
             }
             return i;
@@ -418,7 +452,7 @@ namespace cxx {
             // dothing
         }
 
-        int scheduler::start()
+        void scheduler::start()
         {
             struct sigaction sa, osa;
 
@@ -431,7 +465,7 @@ namespace cxx {
             sigaction(SIGINFO, &sa, &osa);
 #endif
 
-            return schedule();
+            schedule();
         }
 
         int scheduler::schedule()
@@ -570,6 +604,57 @@ namespace cxx {
             return t->state;
         }
 
+        ////////////////////////////////////////////////////////////////////////
+        scheduler_group::scheduler_group(size_t count)
+            : size_(count)
+        {
+            for(size_t i = 0; i < size_; ++i) {
+                scheduler* s = new scheduler();
+                sche_.push_back(s);
+            }
+        }
+
+        scheduler_group::~scheduler_group()
+        {
+            stop(-1);
+            for(size_t i = 0; i < size_; ++i) {
+                delete sche_[i];
+            }
+        }
+
+        void scheduler_group::start()
+        {
+            for(size_t i = 0; i < size_; ++i) {
+                scheduler* s = sche_[i];
+                cxx::sys::thread t = cxx::sys::threadcontrol::create(cxx::MakeDelegate(s, &scheduler::start), "scheduler");
+                thrd_.push_back(t);
+            }
+            for(size_t i = 0; i < size_; ++i) {
+                thrd_[i].join();
+            }
+        }
+
+        void scheduler_group::stop(int status)
+        {
+            for(size_t i = 0; i < size_; ++i) {
+                sche_[i]->quit(status);
+            }
+        }
+
+        size_t scheduler_group::size() const
+        {
+            return size_;
+        }
+
+        scheduler_group::sched_t& scheduler_group::operator [](size_t i)
+        {
+            return sche_[i];
+        }
+
+        const scheduler_group::sched_t& scheduler_group::operator [](size_t i) const
+        {
+            return sche_[i];
+        }
 
     }
 }

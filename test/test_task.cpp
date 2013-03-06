@@ -5,6 +5,8 @@
 #include "common/con/coroutine.h"
 #include "common/con/channel.h"
 #include "common/sys/threads.h"
+#include "common/sys/cputimes.h"
+#include "common/sys/mutex.h"
 #include <sys/time.h>
 
 void dice(cxx::con::coroutine* c, void* p)
@@ -92,9 +94,14 @@ void asleep(cxx::con::coroutine* c, void* p)
 
     printf("waiting for: %d\n", (long)p);
 
-    c->sched()->wait((long)p);
+    bool r = c->sched()->wait((long)p, 1000);
 
-    printf("notified: %d\n", (long)p);
+    printf("notified: %d, %d\n", (long)p, r);
+
+    time_t a1 = time(NULL);
+    r = c->sched()->wait(5, 1000);
+    time_t a2 = time(NULL);
+    printf("notified: %d, %d, %d, %d, %d\n", 5, r, a1, a2, a2 - a1);
 }
 
 void posting(cxx::con::coroutine* c, void* p)
@@ -135,7 +142,9 @@ TEST(coroutine, wait_post)
     printf("sleep done\n");
 }
 
-typedef cxx::con::channel<int > chan;
+//typedef cxx::con::channel<int > chan;
+typedef cxx::con::channel<int, cxx::sys::plainmutex > chan;
+typedef cxx::con::channel<int, cxx::sys::spin_mutex > chan2;
 
 void sender(cxx::con::coroutine* c, void* p)
 {
@@ -180,11 +189,12 @@ void perf_send(cxx::con::coroutine* c, void* p)
 void perf_recv(cxx::con::coroutine* c, void *p)
 {
     chan* ch = (chan *)p;
+    int x = -1;
     for(size_t i = 0; i < 1000000; ++i) {
-        int x = -1;
         ch->recv(c, x);
         ASSERT_EQ(x, i);
     }
+    ASSERT_EQ(x, 1000000-1);
 }
 
 TEST(coroutine, performance_chan)
@@ -194,7 +204,103 @@ TEST(coroutine, performance_chan)
 
     c.spawn(perf_send, &ch);
     c.spawn(perf_recv, &ch);
+
+    cxx::sys::cpu_times usage;
+
     c.start();
+
+    //printf("perf chan: %s\n", usage.report().c_str());
+}
+
+void perf_send2(cxx::con::coroutine* c, void* p)
+{
+    chan2* ch = (chan2 *)p;
+    for(size_t i = 0; i < 1000000; ++i) {
+        ch->send(c, i);
+    }
+}
+
+void perf_recv2(cxx::con::coroutine* c, void *p)
+{
+    chan2* ch = (chan2 *)p;
+    int x = -1;
+    for(size_t i = 0; i < 1000000; ++i) {
+        ch->recv(c, x);
+        ASSERT_EQ(x, i);
+    }
+    ASSERT_EQ(x, 1000000-1);
+}
+
+TEST(coroutine, performance_chan2)
+{
+    cxx::con::scheduler c;
+    chan2    ch(256);
+
+    c.spawn(perf_send2, &ch);
+    c.spawn(perf_recv2, &ch);
+
+    cxx::sys::cpu_times usage;
+
+    c.start();
+
+    //printf("perf chan: %s\n", usage.report().c_str());
+}
+
+TEST(coroutine, performance_chan_thread)
+{
+    cxx::con::scheduler_group c(2);
+    chan    ch1(256);
+
+    c[0]->spawn(perf_send, &ch1);
+    c[1]->spawn(perf_recv, &ch1);
+
+    cxx::sys::cpu_times usage;
+
+    c.start();
+
+    //printf("perf thread chan: %s\n", usage.report().c_str());
+}
+
+void perf_recv3(cxx::con::coroutine* c, void *p)
+{
+    chan* ch = (chan *)p;
+    int x = -1;
+    for(size_t i = 0; i < 2000000; ++i) {
+        ch->recv(c, x);
+    }
+    ASSERT_EQ(x, 1000000-1);
+}
+
+TEST(coroutine, chan_mpsc)
+{
+    cxx::con::scheduler_group c(3);
+    chan    ch1(256);
+
+    c[0]->spawn(perf_send, &ch1);
+    c[1]->spawn(perf_send, &ch1);
+    c[2]->spawn(perf_recv3, &ch1);
+
+    cxx::sys::cpu_times usage;
+
+    c.start();
+
+    //printf("perf thread chan: %s\n", usage.report().c_str());
+}
+
+TEST(coroutine, chan_mpsc_s)
+{
+    cxx::con::scheduler_group c(3);
+    chan    ch1(256);
+
+    c[0]->spawn(perf_send, &ch1);
+    c[0]->spawn(perf_send, &ch1);
+    c[2]->spawn(perf_recv3, &ch1);
+
+    cxx::sys::cpu_times usage;
+
+    c.start();
+
+    //printf("perf thread chan: %s\n", usage.report().c_str());
 }
 
 

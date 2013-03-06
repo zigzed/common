@@ -96,6 +96,40 @@ namespace cxx {
             return res == WAIT_OBJECT_0;
         }
 
+        spin_mutex::spin_mutex()
+            : locker(1)
+        {
+        }
+
+        spin_mutex::~spin_mutex()
+        {
+        }
+
+        void spin_mutex::acquire()
+        {
+            int prev;
+            do {
+                prev = InterlockedExchange(&locker, 0);
+                if(locker == 0 && prev == 1) {
+                    break;
+                }
+            } while(true);
+        }
+
+        bool spin_mutex::trylock()
+        {
+            int prev = InterlockedExchange(&locker, 0);
+            if(locker == 0 && prev == 1) {
+                return true;
+            }
+            return false;
+        }
+
+        void spin_mutex::release()
+        {
+            InterlockedExchange(&locker, 1);
+        }
+
         rwlock::rwlock()
         {
             locker.counter = -1;
@@ -346,6 +380,32 @@ namespace cxx {
 
             res = pthread_mutex_unlock(&(locker.mutex));
             assert(res == 0);
+        }
+
+        spin_mutex::spin_mutex()
+        {
+            pthread_spin_init(&locker, PTHREAD_PROCESS_PRIVATE);
+        }
+
+        spin_mutex::~spin_mutex()
+        {
+            pthread_spin_destroy(&locker);
+        }
+
+        void spin_mutex::acquire()
+        {
+            pthread_spin_lock(&locker);
+        }
+
+        bool spin_mutex::trylock()
+        {
+            int r = pthread_spin_trylock(&locker);
+            return r == 0;
+        }
+
+        void spin_mutex::release()
+        {
+            pthread_spin_unlock(&locker);
         }
 
         rwlock::rwlock()

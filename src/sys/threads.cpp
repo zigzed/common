@@ -165,6 +165,11 @@ namespace cxx {
             }
         }
 
+        void thread::stop()
+        {
+            thread_cancel(handle);
+        }
+
         namespace detail {
 #if defined(OS_WINDOWS)
         template<typename Func >

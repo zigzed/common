@@ -4,6 +4,7 @@
 #define CXX_SYS_CPUTIMES_H
 #include "common/config.h"
 #include <stdint.h>
+#include <string>
 
 namespace cxx {
     namespace sys {
@@ -21,10 +22,12 @@ namespace cxx {
             };
 
             cpu_times();
-            times   elapsed();
+            times   elapsed() const;
             void    start();
             void    stop();
             void    resume();
+
+            std::string report() const;
         private:
             times   usages_;
             bool    in_use_;

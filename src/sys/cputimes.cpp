@@ -2,6 +2,8 @@
  */
 #include "common/config.h"
 #include "common/sys/cputimes.h"
+#include <stdio.h>
+#include <string.h>
 #include <cassert>
 #if     defined(OS_LINUX)
     #include <time.h>
@@ -116,7 +118,7 @@ namespace cxx {
             usages_.sys  = (current.sys - usages_.sys);
         }
 
-        cpu_times::times cpu_times::elapsed()
+        cpu_times::times cpu_times::elapsed() const
         {
             if(!in_use_) {
                 return usages_;
@@ -138,6 +140,18 @@ namespace cxx {
                 usages_.user -= current.user;
                 usages_.sys  -= current.sys;
             }
+        }
+
+        std::string cpu_times::report() const
+        {
+            cpu_times::times usage = elapsed();
+
+            char    buf[512];
+            double  sec = 1000000000.0L;
+            sprintf(buf, "wall: %f total: %f user: %f sys: %f usage: %f%%",
+                   usage.wall / sec, (usage.user + usage.sys) / sec,
+                   usage.user / sec, usage.sys / sec, ((usage.user + usage.sys) * 100.0 / usage.wall));
+            return std::string(buf, buf + strlen(buf));
         }
 
     }

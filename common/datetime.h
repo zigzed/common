@@ -68,8 +68,7 @@ namespace cxx {
     class datetimespan {
     public:
         datetimespan();
-        datetimespan(const datetime_t span);
-        datetimespan(const datetimespan& rhs);
+        datetimespan(long ms);
         datetimespan(long days, long hour, long min, long sec, long msec);
 
         datetimespan& operator= (const datetimespan& rhs);

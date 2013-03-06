@@ -10,6 +10,20 @@
 namespace cxx {
     namespace con {
 
+        /** golang chan风格的通讯机制。
+         * channel除了可以通讯外，还可以模拟 wait/post 同步语义。channel 相对 wait/post
+         * 原语的优点有：
+         *  不需要在scheduler中特殊实现
+         *  send/recv是多线程安全的，wait/post 不是。send/recv可以跨越线程、scheduler
+         * 发送。wait/post不能
+         * wait/post 相对 channel 的优点有：
+         *  post 可以广播通知所有的等待对象，send/recv 不能
+         *
+         * channel默认使用的同步原语是 plainmutex。如果只需要在一个 scheduler 内部使用，
+         * 则可以使用 null_mutex。另外, spin_mutex 的性能和 plainmutex 没有太明显的差别。
+         * 同时 spin_mutex 在 windows 下存在多线程重入的问题（不同的线程同时调用同一个
+         * spin_mutex 的 acquire/release）。因此默认采用 plainmutex
+         */
         template<typename T, typename L = cxx::sys::plainmutex >
         class channel {
         public:
@@ -41,6 +55,7 @@ namespace cxx {
         inline channel<T, L >::~channel()
         {
             close();
+            delete[] data_;
         }
 
         template<typename T, typename L >

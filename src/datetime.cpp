@@ -100,6 +100,14 @@ namespace cxx {
         return datetime(datetime_t(temp), false);
     }
 
+    static datetime makedate(const timeval& tv)
+    {
+        datetime_t temp = tv.tv_sec;
+        temp *= 1000;
+        temp += tv.tv_usec / 1000;
+        return datetime(datetime_t(temp), false);
+    }
+
     static datetime::calendar makecalendar(datetime_t src)
     {
         datetime_t temp = src;
@@ -198,11 +206,8 @@ DoTime:
         ::gettimeofday(&tv, 0);
         static TimeZone	timeZone;
         /// days since unix "epoch" 1970-01-01 plus days between 1601-01-01 to unix "epoch"
-        long edays = (tv.tv_sec / 86400);
-        long esecs = (tv.tv_sec % 86400) + timeZone.offset() * 60;
-        long emsec = (tv.tv_usec / 1000);
-
-        return makedate(edays, esecs * 1000 + emsec);
+        tv.tv_sec += timeZone.offset() * 60;
+        return makedate(tv);
 #endif
     }
 
@@ -414,11 +419,7 @@ DoTime:
     {
     }
 
-    datetimespan::datetimespan(const datetime_t span) : timespan_(span)
-    {
-    }
-
-    datetimespan::datetimespan(const datetimespan& rhs) : timespan_(rhs.timespan_)
+    datetimespan::datetimespan(long ms) : timespan_(ms)
     {
     }
 

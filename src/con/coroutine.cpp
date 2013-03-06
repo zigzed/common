@@ -36,14 +36,6 @@ namespace cxx {
             }
         };
 
-        struct scheduler::waiting {
-            typedef std::pair<int, scheduler::task* >      pair_t;
-            typedef std::map<int, scheduler::tasklist >    wait_t;
-            typedef std::set<pair_t >                      post_t;
-            wait_t              block;
-            post_t              posts;
-        };
-
         struct scheduler::sleeping {
             scheduler::tasklist sleep;
             int                 count;
@@ -90,7 +82,7 @@ namespace cxx {
         }
 
         scheduler::scheduler()
-            : running_(NULL), waiting_(NULL), sleeping_(NULL)
+            : running_(NULL), sleeping_(NULL)
         {
             running_ = new scheduler::running();
         }
@@ -98,7 +90,6 @@ namespace cxx {
         scheduler::~scheduler()
         {
             delete sleeping_;
-            delete waiting_;
             delete running_;
         }
 
@@ -322,81 +313,6 @@ namespace cxx {
                 p->exiting = 1;
                 p = p->next;
             }
-        }
-
-        void scheduler::blocktsk(coroutine* c, void* arg)
-        {
-            scheduler* s = c->sched();
-            s->delay(50);
-            for(scheduler::waiting::wait_t::iterator it = s->waiting_->block.begin();
-                it != s->waiting_->block.end(); ++it) {
-                s->post(it->first, 2);
-            }
-        }
-
-        bool scheduler::wait(int object, int ms)
-        {
-            if(!waiting_) {
-                waiting_ = new scheduler::waiting();
-                spawn(blocktsk, NULL, stack::minimum_size());
-            }
-
-            uvlong when, now;
-            now = nsec();
-            when = now + (uvlong)ms * 1000000;
-
-            waiting::wait_t::iterator it;
-            while((it = waiting_->block.find(object)) == waiting_->block.end()) {
-                tasklist t;
-                t.head = NULL;
-                t.tail = NULL;
-                waiting_->block.insert(std::make_pair(object, t));
-            }
-            tasklist& w = it->second;
-
-            add_task(w, running_->curr);
-            setstate(running_->curr, "wait");
-            taskshift();
-
-            scheduler::waiting::post_t::iterator st = waiting_->posts.find(std::make_pair(object, running_->curr));
-            if(st != waiting_->posts.end()) {
-                waiting_->posts.erase(st);
-                return true;
-            }
-            else {
-                while(nsec() < when) {
-                    yield();
-                }
-                return false;
-            }
-        }
-
-        int scheduler::post(int object, int all)
-        {
-            int i = 0;
-
-            if(!waiting_)
-                return 0;
-
-            waiting::wait_t::iterator it = waiting_->block.find(object);
-            if(it != waiting_->block.end()) {
-                tasklist& w = it->second;
-
-                for(i = 0; ; i++) {
-                    if(i == 1 && !all) {
-                        break;
-                    }
-                    task* t = NULL;
-                    if((t = w.head) == nil)
-                        break;
-                    del_task(w, t);
-                    taskready(t);
-                    if(all != 2) {
-                        waiting_->posts.insert(std::make_pair(object, t));
-                    }
-                }
-            }
-            return i;
         }
 
         scheduler::task* scheduler::ctask()

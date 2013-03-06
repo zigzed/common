@@ -4,6 +4,8 @@
 #define CXX_CON_CHANNEL_H
 #include "common/con/coroutine.h"
 #include "common/sys/mutex.h"
+#include "common/sys/error.h"
+#include "common/datetime.h"
 
 namespace cxx {
     namespace con {
@@ -14,8 +16,8 @@ namespace cxx {
             explicit channel(size_t size);
             ~channel();
 
-            bool send(coroutine* c, const T& v);
-            bool recv(coroutine* c, T& v);
+            bool send(coroutine* c, const T& v, int ms = -1);
+            bool recv(coroutine* c, T& v, int ms = -1);
         private:
             void close();
 
@@ -42,7 +44,7 @@ namespace cxx {
         }
 
         template<typename T, typename L >
-        inline bool channel<T, L >::send(coroutine* c, const T& v)
+        inline bool channel<T, L >::send(coroutine* c, const T& v, int ms)
         {
             lock_.acquire();
             if(closed_) {
@@ -50,15 +52,22 @@ namespace cxx {
                 return false;
             }
 
-            while(size_ >= capacity_) {
+            cxx::datetime       cur(cxx::datetime::now());
+            while(size_ >= capacity_ && (ms < 0 || cxx::datetime::now() < cur + cxx::datetimespan(ms))) {
                 lock_.release();
                 c->delay(0);
-                lock_.acquire();
 
+                lock_.acquire();
                 if(closed_) {
                     lock_.release();
                     return false;
                 }
+            }
+
+            if(size_ >= capacity_) {
+                ENFORCE(ms < 0 || cxx::datetime::now() >= cur + cxx::datetimespan(ms))(ms)(cxx::datetime::now())(cur);
+                lock_.release();
+                return false;
             }
 
             data_[ws_++] = v;
@@ -70,14 +79,16 @@ namespace cxx {
         }
 
         template<typename T, typename L >
-        inline bool channel<T, L >::recv(coroutine* c, T& v)
+        inline bool channel<T, L >::recv(coroutine* c, T& v, int ms)
         {
             lock_.acquire();
             if(closed_) {
                 lock_.release();
                 return false;
             }
-            while(size_ <= 0) {
+
+            cxx::datetime       cur(cxx::datetime::now());
+            while(size_ <= 0 && (ms < 0 || cxx::datetime::now() < cur + cxx::datetimespan(ms))) {
                 lock_.release();
                 c->delay(0);
                 lock_.acquire();
@@ -85,6 +96,12 @@ namespace cxx {
                     lock_.release();
                     return false;
                 }
+            }
+
+            if(size_ <= 0) {
+                lock_.release();
+                ENFORCE(ms < 0 || cxx::datetime::now() >= cur + cxx::datetimespan(ms))(ms)(cxx::datetime::now())(cur);
+                return false;
             }
 
             v = data_[rs_++];

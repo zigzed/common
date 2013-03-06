@@ -86,65 +86,60 @@ TEST(coroutine, delay)
     printf("delay done\n");
 }
 
+//typedef cxx::con::channel<int > chan;
+typedef cxx::con::channel<int, cxx::sys::plainmutex > chan;
+typedef cxx::con::channel<int, cxx::sys::spin_mutex > chan2;
+
+
 void asleep(cxx::con::coroutine* c, void* p)
 {
-    if((long )p != 1) {
-        c->sched()->spawn(asleep, (void* )1, 32768);
-    }
+    chan* ch = (chan* )p;
 
-    printf("waiting for: %d\n", (long)p);
-
-    bool r = c->sched()->wait((long)p, 1000);
-
-    printf("notified: %d, %d\n", (long)p, r);
-
-    time_t a1 = time(NULL);
-    r = c->sched()->wait(5, 1000);
-    time_t a2 = time(NULL);
-    printf("notified: %d, %d, %d, %d, %d\n", 5, r, a1, a2, a2 - a1);
+    int x;
+    bool r = ch->recv(c, x, 1000);
+    printf("notified: %d, %d\n", x, r);
 }
 
 void posting(cxx::con::coroutine* c, void* p)
 {
-    printf("posting\n");
+    chan* ch = (chan* )p;
 
-    int r = c->sched()->post(1, 1);
+    bool r = ch->send(c, 1);
     printf("waking up 1: %d\n", r);
-    ASSERT_EQ(r, 2);
 
-    r = c->sched()->post(2, 0);
+    r = ch->send(c, 2);
     printf("waking up 2: %d\n", r);
-    ASSERT_EQ(r, 1);
 
-    r = c->sched()->post(3, 1);
+    r = ch->send(c, 3);
     printf("waking up 3: %d\n", r);
-    ASSERT_EQ(r, 0);
+
+    time_t a1 = time(NULL);
+    r = ch->send(c, 4, 1000);
+    time_t a2 = time(NULL);
+    printf("waking up 4: %d, %d, %d, %d\n", r, a1, a2, a2 - a1);
+    ASSERT_EQ(r, false);
+    ASSERT_EQ(a2 - a1, 1);
 }
 
 void notify(cxx::con::coroutine* c, void* p)
 {
-    //c->yield();
-
-    c->sched()->spawn(posting, NULL, 32768);
+    c->sched()->spawn(posting, p);
 }
 
 TEST(coroutine, wait_post)
 {
     cxx::con::scheduler c;
+    chan ch(1);
 
     for(long i = 1; i < 3; ++i) {
-        c.spawn(asleep, (void* )i, 32768);
+        c.spawn(asleep, &ch, 32768);
     }
 
-    c.spawn(notify, NULL, 32768);
+    c.spawn(notify, &ch, 32768);
     c.start();
 
     printf("sleep done\n");
 }
-
-//typedef cxx::con::channel<int > chan;
-typedef cxx::con::channel<int, cxx::sys::plainmutex > chan;
-typedef cxx::con::channel<int, cxx::sys::spin_mutex > chan2;
 
 void sender(cxx::con::coroutine* c, void* p)
 {
@@ -176,6 +171,40 @@ TEST(coroutine, channel)
     c.start();
 
     printf("channel done\n");
+}
+
+void sender_to(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan *)p;
+    bool r = ch->send(c, c->getid(), 100);
+    printf("sender: %d done: %s\n", c->getid(), r ? "ok" : "failed");
+}
+
+void receiver_to(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan* )p;
+    int v;
+    int i = 0;
+
+    while(i++ < 10 && ch->recv(c, v, 100)) {
+        printf("received: %d, %d\n", i,  v);
+        c->delay(50);
+    }
+}
+
+TEST(coroutine, channel_timeout)
+{
+    cxx::con::scheduler c;
+    chan    ch(1);
+
+    for(long i = 0; i < 10; ++i) {
+        c.spawn(sender_to, &ch);
+    }
+
+    c.spawn(receiver_to, &ch);
+    c.start();
+
+    printf("channel timeout done\n");
 }
 
 void perf_send(cxx::con::coroutine* c, void* p)

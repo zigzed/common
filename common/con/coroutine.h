@@ -46,11 +46,6 @@ namespace cxx {
             void    start();
             /** quit the scheduler */
             void    quit (int status);
-
-            /** wait for object 'object' */
-            bool    wait(int object, int ms);
-            /** wakeup the task that wait for 'object' */
-            int     post(int object, int all);
         private:
             scheduler(const scheduler& rhs);
             scheduler& operator= (const scheduler& rhs);
@@ -77,11 +72,9 @@ namespace cxx {
             task*   taskalloc(taskptr p, void* arg, unsigned int stack);
 
             struct running;
-            struct waiting;
             struct sleeping;
 
             running*    running_;
-            waiting*    waiting_;
             sleeping*   sleeping_;
         };
 

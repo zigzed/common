@@ -43,9 +43,7 @@ namespace cxx {
 
         void scheduler::start()
         {
-            worker_ = cxx::sys::threadcontrol::create(
-                          cxx::MakeDelegate(this, &scheduler::schedule));
-            worker_.join();
+            schedule();
         }
 
         void scheduler::schedule()

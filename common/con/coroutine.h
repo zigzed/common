@@ -83,7 +83,6 @@ namespace cxx {
             typedef std::set<coroutine* >                       ready_t;
             typedef cxx::alg::channel<command_t, 256 >          queue_t;
 
-            cxx::sys::thread        worker_;
             block_t                 block_; // blocked coroutine
             ready_t                 ready_; // ready coroutine
             queue_t                 queue_;

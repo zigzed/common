@@ -144,34 +144,8 @@ void setmcontext(const mcontext_t*);
 namespace cxx {
     namespace con {
 
-        enum {
-            STACK = 8192
-        };
-
         struct scheduler::context {
             ucontext_t  uc;
-        };
-
-        struct scheduler::task {
-            uint	stksize;    // move stksize to the header of stack to prevent be overwriten
-            char	name[256];	// offset known to acid
-            char	state[256];
-            task	*next;
-            task	*prev;
-            task	*allnext;
-            task	*allprev;
-            scheduler::context	context;
-            uvlong	alarmtime;
-            uint	id;
-            uchar	*stk;
-            int     exiting;
-            int     alltaskslot;
-            int     system;
-            int     ready;
-            void	(*startfn)(coroutine*, void*);
-            void*   startarg;
-            void	*udata;
-            scheduler* engine;
         };
 
     }

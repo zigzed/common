@@ -4,12 +4,25 @@
 #ifndef CXX_CON_COROUTINE_H
 #define CXX_CON_COROUTINE_H
 #include <stddef.h>
+#include <stdexcept>
 #include <map>
+#include <set>
 #include <vector>
+#include "common/datetime.h"
 #include "common/sys/threads.h"
+#include "common/sys/atomic.h"
+#include "common/alg/channel.h"
 
 namespace cxx {
     namespace con {
+
+        class coroutine_error : public std::runtime_error {
+        public:
+            coroutine_error(int code, const std::string& msg);
+            int code() const;
+        private:
+            int code_;
+        };
 
         class coroutine;
         typedef void (*taskptr)(coroutine*, void* );
@@ -27,86 +40,106 @@ namespace cxx {
         /** scheduler is coroutine's run environment */
         class scheduler {
         public:
-            struct task;
             struct context;
 
-            explicit scheduler();
+            scheduler();
             ~scheduler();
 
             /** create a coroutine task from the given function */
-            task*   spawn(taskptr func, void* arg, int stack = stack::default_size());
-            /** get the current task */
-            task*   ctask();
-            /** give up the CPU for the current coroutine task */
-            int     yield();
-            /** give up the CPU for at least 'ms' milliseconds */
-            int     delay(int ms);
-
+            void        spawn(taskptr func, void* arg, int stack = stack::default_size());
             /** starting the coroutine with entry function fn */
-            void    start();
+            void        start();
+            void        resume(coroutine* c);
+            void        sleep(coroutine* c, int ms);
+            context*    ctxt();
+
             /** quit the scheduler */
-            void    quit (int status);
+            void        quit ();
         private:
             scheduler(const scheduler& rhs);
             scheduler& operator= (const scheduler& rhs);
 
-            friend class coroutine;
-
-            struct tasklist {
-                task* head;
-                task* tail;
+            struct command_t {
+                enum {
+                    spawn, resume, sleep, quit
+                } type;
+                union {
+                    struct {
+                        coroutine*      task;
+                    } spawn;
+                    struct {
+                        coroutine*      task;
+                    } resume;
+                    struct {
+                        coroutine*      task;
+                        int             when;
+                    } sleep;
+                    struct {
+                    } quit;
+                } args;
             };
 
-            static void taskmain(unsigned int y, unsigned int x);
-            static void add_task(tasklist& list, task* t);
-            static void del_task(tasklist& list, task* t);
-            static void sleeptsk(coroutine* c, void* arg);
-            static void blocktsk(coroutine* c, void* arg);
-            static void setstate(task* t, const char* fmt, ...);
+            typedef std::multimap<cxx::datetime, coroutine* >   block_t;
+            typedef std::set<coroutine* >                       ready_t;
+            typedef cxx::alg::channel<command_t, 256 >          queue_t;
 
-            int     schedule();
-            void    taskready(task* t);
-            void    taskshift();
-            void    ctxtshift(context* f, context* t);
-            void    needstack(task* t, int n);
-            task*   taskalloc(taskptr p, void* arg, unsigned int stack);
+            cxx::sys::thread        worker_;
+            block_t                 block_; // blocked coroutine
+            ready_t                 ready_; // ready coroutine
+            queue_t                 queue_;
+            context*                ctxt_;
+            static cxx::sys::atomic_t   idgen;
 
-            struct running;
-            struct sleeping;
-
-            running*    running_;
-            sleeping*   sleeping_;
+            int  calc_expire();
+            void do_schedule(coroutine* c);
+            void schedule();
         };
 
         /** coroutine is a task running under scheduler */
         class coroutine {
         public:
-            /** give up the CPU to other coroutine tasks */
-            int         yield();
-            /** give up the CPU to other coroutine at least for 'ms' milliseconds */
-            int         delay(int ms);
-            /** coroutine is ready for schedule */
-            void        ready();
-            void        shift();
-
-            void**      data();
-            void        state(const char* fmt, ...);
-            const char* state() const;
-            size_t      getid() const;
-            scheduler*  sched();
-            void        name (const char* fmt, ...);
-            const char* name () const;
-            void        stop (int status);
-            void        system();
-            scheduler::task* ctask() const;
+            /** give up the CPU to the scheduler, which can schedule other
+             * coroutine tasks
+             */
+            void                yield();
+            /** give up the CPU to the scheduler and other coroutines at least
+             * 'ms' milliseconds
+             */
+            void                sleep(int ms);
+            /** restore the context and ready to run */
+            void                resume();
+            /** the coroutine is stopped or not */
+            bool                isstop();
+            /** the coroutine is dead or not */
+            bool                isdead();
+            /** get the coroutine's scheduler */
+            scheduler*          sched();
+            /** get the context of the coroutine */
+            scheduler::context* ctxt();
+            /** stop the current coroutine */
+            void                stop();
+            int                 getid() const;
+            /** give up the CPU till resume() called */
+            void                shift();
         private:
-            coroutine(scheduler* s, scheduler::task* t);
             coroutine(const coroutine& rhs);
             coroutine& operator= (const coroutine& rhs);
 
             friend class scheduler;
+            coroutine(scheduler* s, taskptr f, void* a, size_t stack);
+            ~coroutine();
+
+            static void tmain(unsigned int y, unsigned int x);
+
+            unsigned char*      stack_;
+            size_t              size_;
             scheduler*          sche_;
-            scheduler::task*    task_;
+            taskptr             func_;
+            void*               args_;
+            scheduler::context* ctxt_;
+            cxx::sys::atomic_t  stop_;
+            cxx::sys::atomic_t  dead_;
+            int                 id_;
         };
 
         class scheduler_group {
@@ -117,7 +150,7 @@ namespace cxx {
             ~scheduler_group();
 
             void            start();
-            void            stop(int status);
+            void            stop();
             size_t          size() const;
             sched_t&        operator[](size_t i);
             const sched_t&  operator[](size_t i) const;

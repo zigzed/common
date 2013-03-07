@@ -70,7 +70,7 @@ namespace cxx {
             cxx::datetime       cur(cxx::datetime::now());
             while(size_ >= capacity_ && (ms < 0 || cxx::datetime::now() < cur + cxx::datetimespan(ms))) {
                 lock_.release();
-                c->delay(0);
+                c->yield();
 
                 lock_.acquire();
                 if(closed_) {
@@ -105,7 +105,8 @@ namespace cxx {
             cxx::datetime       cur(cxx::datetime::now());
             while(size_ <= 0 && (ms < 0 || cxx::datetime::now() < cur + cxx::datetimespan(ms))) {
                 lock_.release();
-                c->delay(0);
+                c->yield();
+
                 lock_.acquire();
                 if(closed_) {
                     lock_.release();

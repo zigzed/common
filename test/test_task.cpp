@@ -90,15 +90,17 @@ typedef cxx::con::channel<int, cxx::sys::spin_mutex > chan2;
 
 void asleep(cxx::con::coroutine* c, void* p)
 {
+    printf("task asleep: %d\n", c->getid());
     chan* ch = (chan* )p;
 
     int x;
-    bool r = ch->recv(c, x, 1000);
+    bool r = ch->recv(c, x);
     printf("notified: %d, %d\n", x, r);
 }
 
 void posting(cxx::con::coroutine* c, void* p)
 {
+    printf("task posting: %d\n", c->getid());
     chan* ch = (chan* )p;
 
     bool r = ch->send(c, 1);
@@ -111,7 +113,7 @@ void posting(cxx::con::coroutine* c, void* p)
     printf("waking up 3: %d\n", r);
 
     time_t a1 = time(NULL);
-    r = ch->send(c, 4, 1000);
+    r = ch->send(c, 4);
     time_t a2 = time(NULL);
     printf("waking up 4: %d, %d, %d, %d\n", r, a1, a2, a2 - a1);
     ASSERT_EQ(r, false);
@@ -120,23 +122,24 @@ void posting(cxx::con::coroutine* c, void* p)
 
 void notify(cxx::con::coroutine* c, void* p)
 {
+    printf("task notify: %d\n", c->getid());
     c->sched()->spawn(posting, p);
 }
 
-TEST(coroutine, wait_post)
-{
-    cxx::con::scheduler c;
-    chan ch(1);
+//TEST(coroutine, wait_post)
+//{
+//    cxx::con::scheduler c;
+//    chan ch(1);
 
-    for(long i = 1; i < 3; ++i) {
-        c.spawn(asleep, &ch, 32768);
-    }
+//    for(long i = 1; i < 3; ++i) {
+//        c.spawn(asleep, &ch, 32768);
+//    }
 
-    c.spawn(notify, &ch, 32768);
-    c.start();
+//    c.spawn(notify, &ch, 32768);
+//    c.start();
 
-    printf("sleep done\n");
-}
+//    printf("sleep done\n");
+//}
 
 void sender(cxx::con::coroutine* c, void* p)
 {
@@ -170,39 +173,41 @@ TEST(coroutine, channel)
     printf("channel done\n");
 }
 
-//void sender_to(cxx::con::coroutine* c, void* p)
-//{
-//    chan* ch = (chan *)p;
-//    bool r = ch->send(c, c->getid(), 100);
-//    printf("sender: %d done: %s\n", c->getid(), r ? "ok" : "failed");
-//}
+void sender_to(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan *)p;
+    bool r = ch->send(c, c->getid());
+    printf("sender: %d done: %s\n", c->getid(), r ? "ok" : "failed");
+}
 
-//void receiver_to(cxx::con::coroutine* c, void* p)
-//{
-//    chan* ch = (chan* )p;
-//    int v;
-//    int i = 0;
+void receiver_to(cxx::con::coroutine* c, void* p)
+{
+    chan* ch = (chan* )p;
+    int v;
+    int i = 0;
 
-//    while(i++ < 10 && ch->recv(c, v, 100)) {
-//        printf("received: %d, %d\n", i,  v);
-//        c->delay(50);
-//    }
-//}
+    while(i++ < 10) {
+        ch->recv(c, v);
+        printf("received: %d, %d\n", i,  v);
+        c->sleep(50);
+    }
+    printf("receiver timeout done\n");
+}
 
-//TEST(coroutine, channel_timeout)
-//{
-//    cxx::con::scheduler c;
-//    chan    ch(1);
+TEST(coroutine, channel_timeout)
+{
+    cxx::con::scheduler c;
+    chan    ch(1);
 
-//    for(long i = 0; i < 10; ++i) {
-//        c.spawn(sender_to, &ch);
-//    }
+    for(long i = 0; i < 10; ++i) {
+        c.spawn(sender_to, &ch);
+    }
 
-//    c.spawn(receiver_to, &ch);
-//    c.start();
+    c.spawn(receiver_to, &ch);
+    c.start();
 
-//    printf("channel timeout done\n");
-//}
+    printf("channel timeout done\n");
+}
 
 void perf_send(cxx::con::coroutine* c, void* p)
 {
@@ -210,6 +215,7 @@ void perf_send(cxx::con::coroutine* c, void* p)
     for(size_t i = 0; i < 1000000; ++i) {
         ch->send(c, i);
     }
+    printf("perf_send %d done\n", c->getid());
 }
 
 void perf_recv(cxx::con::coroutine* c, void *p)
@@ -217,6 +223,7 @@ void perf_recv(cxx::con::coroutine* c, void *p)
     chan* ch = (chan *)p;
     int x = -1;
     for(size_t i = 0; i < 1000000; ++i) {
+        x = -1;
         ch->recv(c, x);
         ASSERT_EQ(x, i);
     }
@@ -272,62 +279,84 @@ TEST(coroutine, performance_chan2)
     //printf("perf chan: %s\n", usage.report().c_str());
 }
 
-//TEST(coroutine, performance_chan_thread)
-//{
-//    cxx::con::scheduler_group c(2);
-//    chan    ch1(256);
+TEST(coroutine, performance_chan_thread)
+{
+    cxx::con::scheduler_group c(2);
+    chan2    ch1(256);
 
-//    c[0]->spawn(perf_send, &ch1);
-//    c[1]->spawn(perf_recv, &ch1);
+    c[0]->spawn(perf_send2, &ch1);
+    c[1]->spawn(perf_recv2, &ch1);
 
-//    cxx::sys::cpu_times usage;
+    cxx::sys::cpu_times usage;
 
-//    c.start();
+    c.start();
 
-//    //printf("perf thread chan: %s\n", usage.report().c_str());
-//}
+    //printf("perf thread chan: %s\n", usage.report().c_str());
+}
 
-//void perf_recv3(cxx::con::coroutine* c, void *p)
-//{
-//    chan* ch = (chan *)p;
-//    int x = -1;
-//    for(size_t i = 0; i < 2000000; ++i) {
-//        ch->recv(c, x);
-//    }
-//    ASSERT_EQ(x, 1000000-1);
-//}
+void perf_recv3(cxx::con::coroutine* c, void *p)
+{
+    chan* ch = (chan *)p;
+    int x = -1;
+    for(size_t i = 0; i < 2000000; ++i) {
+        if(ch->recv(c, x)) {
+            if(x % 100000 == 99999) {
+                printf("perf_recv3: %d, %d, %d\n", c->getid(), i, x);
+            }
+        }
+    }
+    ASSERT_EQ(x, 1000000-1);
+    printf("perf_recv3 done: %d\n", x);
+}
 
-//TEST(coroutine, chan_mpsc)
-//{
-//    cxx::con::scheduler_group c(3);
-//    chan    ch1(256);
+TEST(coroutine, chan_mpsc_as)
+{
+    cxx::con::scheduler c;
+    chan    ch1(256);
 
-//    c[0]->spawn(perf_send, &ch1);
-//    c[1]->spawn(perf_send, &ch1);
-//    c[2]->spawn(perf_recv3, &ch1);
+    c.spawn(perf_send, &ch1);
+    c.spawn(perf_send, &ch1);
+    c.spawn(perf_recv3, &ch1);
 
-//    cxx::sys::cpu_times usage;
+    cxx::sys::cpu_times usage;
 
-//    c.start();
+    c.start();
+}
 
-//    //printf("perf thread chan: %s\n", usage.report().c_str());
-//}
+TEST(coroutine, chan_mpsc)
+{
+    cxx::con::scheduler_group c(3);
+    chan    ch1(256);
 
-//TEST(coroutine, chan_mpsc_s)
-//{
-//    cxx::con::scheduler_group c(3);
-//    chan    ch1(256);
+    c[0]->spawn(perf_send, &ch1);
+    c[1]->spawn(perf_send, &ch1);
+    c[2]->spawn(perf_recv3, &ch1);
 
-//    c[0]->spawn(perf_send, &ch1);
-//    c[0]->spawn(perf_send, &ch1);
-//    c[2]->spawn(perf_recv3, &ch1);
+    cxx::sys::cpu_times usage;
 
-//    cxx::sys::cpu_times usage;
+    c.start();
 
-//    c.start();
+    //printf("perf thread chan: %s\n", usage.report().c_str());
+}
 
-//    //printf("perf thread chan: %s\n", usage.report().c_str());
-//}
+TEST(coroutine, chan_mpsc_s)
+{
+    cxx::con::scheduler_group c(2);
+    chan    ch1(256);
+
+    printf("%p %p\n", c[0], c[1]);
+
+    c[1]->spawn(perf_send, &ch1);
+    c[1]->spawn(perf_send, &ch1);
+    c[0]->spawn(perf_recv3, &ch1);
+
+    cxx::sys::cpu_times usage;
+
+    c.start();
+    printf("perf chan_mpsc_s done\n");
+
+    //printf("perf thread chan: %s\n", usage.report().c_str());
+}
 
 
 int main(int argc, char* argv[])

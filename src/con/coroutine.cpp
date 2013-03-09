@@ -53,13 +53,7 @@ namespace cxx {
                 fprintf(stderr, "coroutine error: %d - %s\n", e.code(), e.what());
             }
             c->dead_.store(1);
-
-            // switch to the scheduler
-            if(swapcontext(&c->ctxt_->uc, &c->sched()->ctxt()->uc) < 0) {
-                int err = cxx::sys::err::get();
-                fprintf(stderr, "swapcontext failed: %d - %s\n", err, cxx::sys::err::str(err).c_str());
-                assert(0);
-            }
+            scheduler::shift(c->ctxt(), c->sched()->ctxt());
         }
 
         coroutine::coroutine(scheduler *s, taskptr f, void *a, size_t stack)
@@ -136,7 +130,8 @@ namespace cxx {
 
         void coroutine::sleep(int ms)
         {
-            sche_->sleep(this, ms);
+            if(ms >= 0)
+                sche_->sleep(this, ms);
             shift();
         }
 
@@ -145,12 +140,7 @@ namespace cxx {
             if(isstop()) {
                 throw coroutine_error(0, "yield a stopped coroutine");
             }
-            // switch to the scheduler
-            if(swapcontext(&ctxt_->uc, &sche_->ctxt()->uc) < 0) {
-                int err = cxx::sys::err::get();
-                fprintf(stderr, "swapcontext failed: %d - %s\n", err, cxx::sys::err::str(err).c_str());
-                assert(0);
-            }
+            scheduler::shift(ctxt_, sche_->ctxt());
             if(isstop()) {
                 throw coroutine_error(0, "coroutine stopped out of scope");
             }

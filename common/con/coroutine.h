@@ -55,6 +55,8 @@ namespace cxx {
 
             /** quit the scheduler */
             void        quit ();
+
+            static void shift(context* f, context* t);
         private:
             scheduler(const scheduler& rhs);
             scheduler& operator= (const scheduler& rhs);
@@ -79,9 +81,9 @@ namespace cxx {
                 } args;
             };
 
-            typedef std::multimap<cxx::datetime, coroutine* >   block_t;
-            typedef std::set<coroutine* >                       ready_t;
-            typedef cxx::alg::channel<command_t, 256 >          queue_t;
+            typedef std::multimap<cxx::datetime, coroutine* >                   block_t;
+            typedef std::set<coroutine* >                                       ready_t;
+            typedef cxx::alg::channel<command_t, 256, cxx::sys::plainmutex >    queue_t;
 
             block_t                 block_; // blocked coroutine
             ready_t                 ready_; // ready coroutine

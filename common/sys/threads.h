@@ -35,11 +35,14 @@ namespace cxx {
             bool operator!= (const thread& rhs) const;
             void join();
             void stop();
+            void complete();
+            bool completed() const;
         private:
             friend class threadcontrol;
             thread_t	handle;
             long*		refcnt;
             bool		isjoin;
+            bool*       isdone;
         };
 
         class threadpool {

@@ -67,6 +67,7 @@ namespace cxx {
                         block_.insert(std::make_pair
                                       (now + cxx::datetimespan(m.args.sleep.when),
                                        m.args.sleep.task));
+                        ready_.erase(m.args.sleep.task);
                         break;
                     case command_t::quit:
                         running = false;
@@ -76,8 +77,8 @@ namespace cxx {
                 else {
                     timeout = calc_expire();
                     if(timeout == -1) {
-                        // default to 100ms
-                        timeout = 100;
+                        // default to 500ms
+                        timeout = 500;
                     }
                 }
                 if(ready_.empty() && block_.empty() && queue_.size() == 0) {
@@ -119,16 +120,30 @@ namespace cxx {
             queue_.send(m);
         }
 
-        void scheduler::do_schedule(coroutine *c)
+        void scheduler::shift(scheduler::context *f, scheduler::context *t)
         {
             // switch to the scheduler
-            if(swapcontext(&ctxt_->uc, &c->ctxt()->uc) < 0) {
+            if(swapcontext(&f->uc, &t->uc) < 0) {
                 int err = cxx::sys::err::get();
                 fprintf(stderr, "swapcontext failed: %d - %s\n", err, cxx::sys::err::str(err).c_str());
                 assert(0);
             }
+        }
+
+        void scheduler::do_schedule(coroutine *c)
+        {
+            shift(ctxt_, c->ctxt());
             if(c->isdead()) {
                 ready_.erase(c);
+                block_t::iterator it = block_.begin();
+                while(it != block_.end()) {
+                    if(it->second == c) {
+                        block_.erase(it++);
+                    }
+                    else {
+                        it++;
+                    }
+                }
             }
         }
 

@@ -25,7 +25,7 @@ namespace cxx {
             sys::event::handle_t    get_fd() const;
             void                    send(const M& m);
             bool                    recv(M* m, int timeout);
-            size_t                  size() const;
+            size_t                  size();
         private:
             typedef pipe<M, N > pipe_t;
 
@@ -100,8 +100,9 @@ namespace cxx {
         }
 
         template<typename M, int N, typename L >
-        inline size_t channel<M, N, L >::size() const
+        inline size_t channel<M, N, L >::size()
         {
+            typename L::scopelock lock(mutex_);
             return wsize_ - rsize_;
         }
 

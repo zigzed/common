@@ -111,7 +111,7 @@ namespace cxx {
 
 #endif
 
-        thread::thread() : refcnt(new long(1)), isjoin(false)
+        thread::thread() : refcnt(new long(1)), isjoin(false), isdone(new bool(false))
         {
             handle = thread_self();
         }
@@ -124,6 +124,7 @@ namespace cxx {
                     thread_destroy(handle);
                 delete refcnt;
                 refcnt = 0;
+                delete isdone;
             }
         }
 
@@ -131,6 +132,7 @@ namespace cxx {
         {
             handle = rhs.handle;
             isjoin = rhs.isjoin;
+            isdone = rhs.isdone;
             ++*refcnt;
         }
 
@@ -143,6 +145,7 @@ namespace cxx {
             handle = rhs.handle;
             refcnt = rhs.refcnt;
             isjoin = rhs.isjoin;
+            isdone = rhs.isdone;
             ++*refcnt;
             return *this;
         }
@@ -168,6 +171,16 @@ namespace cxx {
         void thread::stop()
         {
             thread_cancel(handle);
+        }
+
+        void thread::complete()
+        {
+            *isdone = true;
+        }
+
+        bool thread::completed() const
+        {
+            return *isdone;
         }
 
         namespace detail {
@@ -197,7 +210,9 @@ namespace cxx {
 #else
             template<typename Func >
             struct threadarg {
-                threadarg(const Func& func, const char* name) : name_(name), isstart(false), threadfunc(func) {
+                threadarg(const Func& func, const char* name, thread& t)
+                    : name_(name), isstart(false), threadfunc(func), thrd_(t)
+                {
                     pthread_mutex_init(&mutex_, 0);
                     pthread_cond_init(&conds_, 0);
                 }
@@ -227,6 +242,7 @@ namespace cxx {
                 std::string		name_;
                 bool			isstart;
                 const Func&	    threadfunc;
+                thread&         thrd_;
             };
 #endif
 
@@ -242,11 +258,13 @@ namespace cxx {
                 try {
                     ThreadArg* p = static_cast<ThreadArg* >(param);
                     name = p->name();
+                    thread copy = p->thrd_;
                     // 拷贝构造，防止 threadarg<Delegate >::threadfunc 在 create 函数
                     // 中离开作用域。
                     Delegate threadfunc = p->threadfunc;
                     p->started();
                     threadfunc();
+                    copy.complete();
                 }
                 catch(...) {
                     fprintf(stderr, "thread '%s' exception catched and aborted\n", name.c_str());
@@ -260,8 +278,8 @@ namespace cxx {
         thread threadcontrol::create(const Delegate& func, const char* name)
         {
             typedef detail::threadarg<Delegate >    ThreadArg;
-            ThreadArg	param(func, name);
             thread		thrds;
+            ThreadArg	param(func, name, thrds);
             thrds.handle = thread_create(detail::threadproxy, &param);
             thrds.isjoin = true;
             param.waitfin();

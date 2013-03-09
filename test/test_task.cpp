@@ -113,7 +113,7 @@ void posting(cxx::con::coroutine* c, void* p)
     printf("waking up 3: %d\n", r);
 
     time_t a1 = time(NULL);
-    r = ch->send(c, 4);
+    r = ch->send(c, 4, 1000);
     time_t a2 = time(NULL);
     printf("waking up 4: %d, %d, %d, %d\n", r, a1, a2, a2 - a1);
     ASSERT_EQ(r, false);
@@ -126,20 +126,20 @@ void notify(cxx::con::coroutine* c, void* p)
     c->sched()->spawn(posting, p);
 }
 
-//TEST(coroutine, wait_post)
-//{
-//    cxx::con::scheduler c;
-//    chan ch(1);
+TEST(coroutine, wait_post)
+{
+    cxx::con::scheduler c;
+    chan ch(1);
 
-//    for(long i = 1; i < 3; ++i) {
-//        c.spawn(asleep, &ch, 32768);
-//    }
+    for(long i = 1; i < 3; ++i) {
+        c.spawn(asleep, &ch, 32768);
+    }
 
-//    c.spawn(notify, &ch, 32768);
-//    c.start();
+    c.spawn(notify, &ch, 32768);
+    c.start();
 
-//    printf("sleep done\n");
-//}
+    printf("sleep done\n");
+}
 
 void sender(cxx::con::coroutine* c, void* p)
 {
@@ -176,7 +176,7 @@ TEST(coroutine, channel)
 void sender_to(cxx::con::coroutine* c, void* p)
 {
     chan* ch = (chan *)p;
-    bool r = ch->send(c, c->getid());
+    bool r = ch->send(c, c->getid(), 100);
     printf("sender: %d done: %s\n", c->getid(), r ? "ok" : "failed");
 }
 
@@ -187,8 +187,8 @@ void receiver_to(cxx::con::coroutine* c, void* p)
     int i = 0;
 
     while(i++ < 10) {
-        ch->recv(c, v);
-        printf("received: %d, %d\n", i,  v);
+        bool r = ch->recv(c, v, 100);
+        printf("received: %d, %d, %d\n", i,  v, r);
         c->sleep(50);
     }
     printf("receiver timeout done\n");

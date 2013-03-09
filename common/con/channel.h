@@ -32,7 +32,9 @@ namespace cxx {
             ~channel();
 
             bool send(coroutine* c, const T& v);
+            bool send(coroutine* c, const T& v, int ms);
             bool recv(coroutine* c, T& v);
+            bool recv(coroutine* c, T& v, int ms);
             void close();
         private:
             typedef std::queue<coroutine* > queue_t;
@@ -60,6 +62,87 @@ namespace cxx {
         {
             close();
             delete[] data_;
+        }
+
+        template<typename T, typename L >
+        inline bool channel<T, L >::send(coroutine *c, const T &v, int ms)
+        {
+            lock_.acquire();
+            if(closed_) {
+                lock_.release();
+                return false;
+            }
+
+            cxx::datetime when = cxx::datetime::now() + cxx::datetimespan(ms);
+            while(size_ >= capacity_) {
+                lock_.release();
+                c->sleep(ms);
+
+                lock_.acquire();
+                if(closed_) {
+                    lock_.release();
+                    return false;
+                }
+                if(cxx::datetime::now() >= when) {
+                    lock_.release();
+                    return false;
+                }
+            }
+
+            data_[ws_++] = v;
+            if(ws_ == capacity_) ws_ = 0;
+            ++size_;
+            if(!rq_.empty()) {
+                coroutine* r = rq_.front();
+                rq_.pop();
+                lock_.release();
+                r->resume();
+            }
+            else {
+                lock_.release();
+            }
+
+            return true;
+        }
+
+        template<typename T, typename L >
+        inline bool channel<T, L >::recv(coroutine *c, T &v, int ms)
+        {
+            lock_.acquire();
+            if(closed_) {
+                lock_.release();
+                return false;
+            }
+
+            cxx::datetime when = cxx::datetime::now() + cxx::datetimespan(ms);
+            while(size_ <= 0) {
+                lock_.release();
+                c->sleep(ms);
+
+                lock_.acquire();
+                if(closed_) {
+                    lock_.release();
+                    return false;
+                }
+                if(cxx::datetime::now() >= when) {
+                    lock_.release();
+                    return false;
+                }
+            }
+
+            v = data_[rs_++];
+            if(rs_ == capacity_) rs_ = 0;
+            --size_;
+            if(!wq_.empty()) {
+                coroutine* w = wq_.front();
+                wq_.pop();
+                lock_.release();
+                w->resume();
+            }
+            else {
+                lock_.release();
+            }
+            return true;
         }
 
         template<typename T, typename L >

@@ -102,7 +102,6 @@ namespace cxx {
         template<typename M, int N, typename L >
         inline size_t channel<M, N, L >::size()
         {
-            typename L::scopelock lock(mutex_);
             return wsize_ - rsize_;
         }
 

@@ -346,9 +346,9 @@ TEST(coroutine, chan_mpsc_s)
 
     printf("%p %p\n", c[0], c[1]);
 
-    c[1]->spawn(perf_send, &ch1);
-    c[1]->spawn(perf_send, &ch1);
-    c[0]->spawn(perf_recv3, &ch1);
+    c[0]->spawn(perf_send, &ch1);
+    c[0]->spawn(perf_send, &ch1);
+    c[1]->spawn(perf_recv3, &ch1);
 
     cxx::sys::cpu_times usage;
 

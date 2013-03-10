@@ -31,9 +31,13 @@ namespace cxx {
             explicit channel(size_t size);
             ~channel();
 
+            /** 发送消息。当channel被关闭时返回false */
             bool send(coroutine* c, const T& v);
+            /** 发送消息。在超时或者channel被关闭时返回false */
             bool send(coroutine* c, const T& v, int ms);
+            /** 接收消息。当channel被关闭时返回false，否则一直等待到接收成功 */
             bool recv(coroutine* c, T& v);
+            /** 接收消息。当channel被关闭或者超时时返回false */
             bool recv(coroutine* c, T& v, int ms);
             void close();
         private:
@@ -67,6 +71,7 @@ namespace cxx {
         template<typename T, typename L >
         inline bool channel<T, L >::send(coroutine *c, const T &v, int ms)
         {
+            ENFORCE(ms >= 0)(ms);
             lock_.acquire();
             if(closed_) {
                 lock_.release();
@@ -83,7 +88,7 @@ namespace cxx {
                     lock_.release();
                     return false;
                 }
-                if(cxx::datetime::now() >= when) {
+                if(size_ >= capacity_ && cxx::datetime::now() > when) {
                     lock_.release();
                     return false;
                 }
@@ -108,6 +113,7 @@ namespace cxx {
         template<typename T, typename L >
         inline bool channel<T, L >::recv(coroutine *c, T &v, int ms)
         {
+            ENFORCE(ms >= 0)(ms);
             lock_.acquire();
             if(closed_) {
                 lock_.release();
@@ -124,7 +130,7 @@ namespace cxx {
                     lock_.release();
                     return false;
                 }
-                if(cxx::datetime::now() >= when) {
+                if(size_ <= 0 && cxx::datetime::now() > when) {
                     lock_.release();
                     return false;
                 }

@@ -25,7 +25,7 @@ namespace cxx {
             void     del_fd(handle_t handle, readable r);
             void     del_fd(handle_t handle, writable w);
         private:
-            void     do_task(int timeout);
+            int      do_task(int timeout);
             void     destroy();
 
             struct epoll_entry {

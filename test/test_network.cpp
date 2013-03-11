@@ -82,7 +82,7 @@ TEST(NET, poller_create)
     PollerTimer timer(p);
     p->add_timer(1, 1000, &timer);
     p->add_timer(2, 1500, &timer);
-    p->start();
+    p->poll();
 
     cxx::sys::threadcontrol::sleep(2000);
     p->destroy();

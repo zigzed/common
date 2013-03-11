@@ -76,11 +76,11 @@ namespace cxx {
             pollfd_[id].events &= ~((short)POLLOUT);
         }
 
-        void poll::do_task(int timeout)
+        int poll::do_task(int timeout)
         {
             int rc = ::poll(&pollfd_[0], pollfd_.size(), timeout);
             if(rc == 0)
-                return;
+                return 0;
             if(rc < 0)
                 assert(sys::err::get() == EINTR);
 
@@ -88,15 +88,15 @@ namespace cxx {
                 if(pollfd_[i].fd == -1)
                     continue;
                 if(pollfd_[i].revents & (POLLERR | POLLHUP))
-                    tables_[pollfd_[i].fd].cb->on_readable();
+                    tables_[pollfd_[i].fd].cb->on_readable(pollfd_[i].fd);
                 if(pollfd_[i].fd == -1)
                     continue;
                 if(pollfd_[i].revents & POLLIN)
-                    tables_[pollfd_[i].fd].cb->on_readable();
+                    tables_[pollfd_[i].fd].cb->on_readable(pollfd_[i].fd);
                 if(pollfd_[i].fd == -1)
                     continue;
                 if(pollfd_[i].revents & POLLOUT)
-                    tables_[pollfd_[i].fd].cb->on_writable();
+                    tables_[pollfd_[i].fd].cb->on_writable(pollfd_[i].fd);
             }
 
             if(retire_) {

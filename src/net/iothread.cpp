@@ -21,7 +21,7 @@ namespace cxx {
 
         void io_thread::start()
         {
-            poller_->start();
+            cxx::sys::threadcontrol::create(cxx::MakeDelegate(poller_, &poller::poll), "io_thread");
         }
 
         void io_thread::stop()

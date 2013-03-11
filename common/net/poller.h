@@ -24,9 +24,9 @@ namespace cxx {
         public:
             virtual ~poller_event() {}
 
-            virtual void on_readable() = 0;
-            virtual void on_writable() = 0;
-            virtual void on_expire(int id) = 0;
+            virtual void on_readable(fd_t fd) {}
+            virtual void on_writable(fd_t fd) {}
+            virtual void on_expire(int id) {}
         };
 
         class poller {
@@ -36,8 +36,6 @@ namespace cxx {
             struct writable {};
 
             static poller* create();
-
-
 
             /** add a timeout to expire in 'timeout' milliseconds. after the
              * expiration, poller_event::on_expire() will be called with timer
@@ -51,8 +49,13 @@ namespace cxx {
             /** return current load of the poller */
             int  get_loads() const;
 
-            void start();
-            void stop ();
+            /** start polling in loop */
+            void poll();
+            /** poll and wait at most 'ms' milliseconds once
+             * @return return number of events in poll */
+            int  poll_once(int ms);
+            /** stop the polling */
+            void stop();
 
             /** add 'fd' to the poller */
             virtual handle_t    add_fd(fd_t fd, poller_event* sink) = 0;
@@ -80,7 +83,7 @@ namespace cxx {
 
             /** poller implementations must implement this method to do the
              * real multiplexing. 'timeout' is wait time for multiplex */
-            virtual void do_task(int timeout) = 0;
+            virtual int do_task(int timeout) = 0;
         private:
             void polling();
             poller(const poller& rhs);

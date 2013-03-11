@@ -11,7 +11,7 @@
 #include "common/datetime.h"
 #include "common/sys/threads.h"
 #include "common/sys/atomic.h"
-#include "common/alg/channel.h"
+#include "common/net/poller.h"
 
 namespace cxx {
     namespace con {
@@ -56,38 +56,25 @@ namespace cxx {
             /** quit the scheduler */
             void        quit ();
 
+            /** async wait for fd readable */
+            void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r);
+            /** async wait for fd writable */
+            void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
+
             static void shift(context* f, context* t);
         private:
             scheduler(const scheduler& rhs);
-            scheduler& operator= (const scheduler& rhs);
-
-            struct command_t {
-                enum {
-                    spawn, resume, sleep, quit
-                } type;
-                union {
-                    struct {
-                        coroutine*      task;
-                    } spawn;
-                    struct {
-                        coroutine*      task;
-                    } resume;
-                    struct {
-                        coroutine*      task;
-                        int             when;
-                    } sleep;
-                    struct {
-                    } quit;
-                } args;
-            };
+            scheduler& operator= (const scheduler& rhs);         
 
             typedef std::multimap<cxx::datetime, coroutine* >                   block_t;
             typedef std::set<coroutine* >                                       ready_t;
-            typedef cxx::alg::channel<command_t, 256, cxx::sys::plainmutex >    queue_t;
+
+            struct  command;
+            struct  reactor;
 
             block_t                 block_; // blocked coroutine
             ready_t                 ready_; // ready coroutine
-            queue_t                 queue_;
+            reactor*                queue_;
             context*                ctxt_;
             static cxx::sys::atomic_t   idgen;
 

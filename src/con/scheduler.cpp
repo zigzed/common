@@ -2,6 +2,7 @@
  */
 #include "common/con/coroutine.h"
 #include "context.h"
+#include "command.h"
 
 namespace cxx {
     namespace con {
@@ -22,7 +23,8 @@ namespace cxx {
         ////////////////////////////////////////////////////////////////////////
         scheduler::scheduler()
         {
-            ctxt_ = new context;
+            ctxt_   = new context;
+            queue_  = new scheduler::reactor(this);
         }
 
         scheduler::~scheduler()
@@ -35,10 +37,10 @@ namespace cxx {
         {
             coroutine*  c = new coroutine(this, func, arg, stack);
             c->id_ = (int)++idgen;
-            command_t   m;
-            m.type = command_t::spawn;
+            command   m;
+            m.type = command::spawn;
             m.args.spawn.task = c;
-            queue_.send(m);
+            queue_->send(m);
         }
 
         void scheduler::start()
@@ -52,24 +54,24 @@ namespace cxx {
             int     timeout = 0;
             cxx::datetime now;
             while(running) {
-                command_t   m;
-                if(queue_.recv(&m, timeout)) {
+                command   m;
+                if(queue_->recv(&m, timeout)) {
                     switch(m.type) {
-                    case command_t::spawn:
+                    case command::spawn:
                         ready_.insert(m.args.spawn.task);
                         do_schedule(m.args.spawn.task);
                         break;
-                    case command_t::resume:
+                    case command::resume:
                         do_schedule(m.args.resume.task);
                         break;
-                    case command_t::sleep:
+                    case command::sleep:
                         now = cxx::datetime::now();
                         block_.insert(std::make_pair
                                       (now + cxx::datetimespan(m.args.sleep.when),
                                        m.args.sleep.task));
                         ready_.erase(m.args.sleep.task);
                         break;
-                    case command_t::quit:
+                    case command::quit:
                         running = false;
                         break;
                     }
@@ -81,7 +83,7 @@ namespace cxx {
                         timeout = 500;
                     }
                 }
-                if(ready_.empty() && block_.empty() && queue_.size() == 0) {
+                if(ready_.empty() && block_.empty() && queue_->size() == 0) {
                     running = false;
                     break;
                 }
@@ -93,19 +95,19 @@ namespace cxx {
 
         void scheduler::sleep(coroutine *c, int ms)
         {
-            command_t   m;
-            m.type = command_t::sleep;
+            command   m;
+            m.type = command::sleep;
             m.args.sleep.task = c;
             m.args.sleep.when = ms;
-            queue_.send(m);
+            queue_->send(m);
         }
 
         void scheduler::resume(coroutine *c)
         {
-            command_t   m;
-            m.type = command_t::resume;
+            command   m;
+            m.type = command::resume;
             m.args.resume.task = c;
-            queue_.send(m);
+            queue_->send(m);
         }
 
         scheduler::context* scheduler::ctxt()
@@ -115,9 +117,9 @@ namespace cxx {
 
         void scheduler::quit()
         {
-            command_t   m;
-            m.type = command_t::quit;
-            queue_.send(m);
+            command   m;
+            m.type = command::quit;
+            queue_->send(m);
         }
 
         void scheduler::shift(scheduler::context *f, scheduler::context *t)

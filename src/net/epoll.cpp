@@ -84,7 +84,7 @@ namespace cxx {
             ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
         }
 
-        void epoll::do_task(int timeout)
+        int epoll::do_task(int timeout)
         {
             static const int MAX_IO_EVENTS = 256;
             epoll_event evbuf[MAX_IO_EVENTS];
@@ -95,17 +95,17 @@ namespace cxx {
                 if(pe->fd == -1)
                     continue;
                 if(evbuf[i].events & (EPOLLERR | EPOLLHUP))
-                    pe->cb->on_readable();
+                    pe->cb->on_readable(pe->fd);
                 // in case of user call 'del_fd' in on_readable()
                 if(pe->fd == -1)
                     continue;
                 if(evbuf[i].events & EPOLLIN)
-                    pe->cb->on_readable();
+                    pe->cb->on_readable(pe->fd);
                 // in case of user call 'del_fd' in on_readable()
                 if(pe->fd == -1)
                     continue;
                 if(evbuf[i].events & EPOLLOUT)
-                    pe->cb->on_writable();
+                    pe->cb->on_writable(pe->fd);
             }
 
             {
@@ -115,6 +115,7 @@ namespace cxx {
                 }
                 retired_.clear();
             }
+            return n;
         }
 
         void epoll::destroy()

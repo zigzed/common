@@ -92,7 +92,7 @@ namespace cxx {
             return se.fd == -1;
         }
 
-        void select::do_task(int timeout)
+        int select::do_task(int timeout)
         {
             memcpy(&cur_er_, &src_er_, sizeof(src_er_));
             memcpy(&cur_wr_, &src_wr_, sizeof(src_wr_));
@@ -109,19 +109,19 @@ namespace cxx {
                     continue;
                 if(FD_ISSET(fd_set_[iter].fd, &cur_er_)) {
                     ++done;
-                    fd_set_[iter].cb->on_readable();
+                    fd_set_[iter].cb->on_readable(fd_set_[iter].fd);
                 }
                 if(fd_set_[iter].fd == -1)
                     continue;
                 if(FD_ISSET(fd_set_[iter].fd, &cur_wr_)) {
                     ++done;
-                    fd_set_[iter].cb->on_writable();
+                    fd_set_[iter].cb->on_writable(fd_set_[iter].fd);
                 }
                 if(fd_set_[iter].fd == -1)
                     continue;
                 if(FD_ISSET(fd_set_[iter].fd, &cur_rd_)) {
                     ++done;
-                    fd_set_[iter].cb->on_readable();
+                    fd_set_[iter].cb->on_readable(fd_set_[iter].fd);
                 }
             }
 
@@ -130,6 +130,7 @@ namespace cxx {
                               fd_set_.end());
                 retire_ = false;
             }
+            return rc;
         }
 
         void select::destroy()

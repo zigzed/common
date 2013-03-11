@@ -35,7 +35,7 @@ namespace cxx {
             };
             typedef std::vector<select_entry >  fdset_t;
 
-            void        do_task(int timeout);
+            int         do_task(int timeout);
             void        destroy();
             static bool is_removed(const select_entry& se);
 

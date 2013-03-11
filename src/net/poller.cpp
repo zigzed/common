@@ -136,18 +136,13 @@ namespace cxx {
             return 0;
         }
 
-        void poller::start()
-        {
-            threads_ = cxx::sys::threadcontrol::create(cxx::MakeDelegate(this, &poller::polling), "polling");
-        }
-
         void poller::stop()
         {
             working_ = false;
             threads_.join();
         }
 
-        void poller::polling()
+        void poller::poll()
         {
             while(working_) {
                 int timer = exe_timer();
@@ -156,6 +151,16 @@ namespace cxx {
                 }
                 do_task(timer);
             }
+        }
+
+        int poller::poll_once(int ms)
+        {
+            int timer = exe_timer();
+            if(timer == 0)
+                timer = timeout_;
+            if(timer > ms)
+                timer = ms;
+            return do_task(timer);
         }
 
     }

@@ -110,7 +110,7 @@ namespace cxx {
             return sock;
         }
 
-        void tcp_listener::on_readable()
+        void tcp_listener::on_readable(fd_t)
         {
             fd_t fd = accept();
             if(fd == -1) {
@@ -121,7 +121,7 @@ namespace cxx {
                 conn_cb_->on_accepted(endpoint_.c_str(), fd);
         }
 
-        void tcp_listener::on_writable()
+        void tcp_listener::on_writable(fd_t)
         {
             ENFORCE(false);
         }

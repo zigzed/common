@@ -25,8 +25,8 @@ namespace cxx {
             void detach(connection_event* conn_cb);
 
         private:
-            void on_readable();
-            void on_writable();
+            void on_readable(fd_t f);
+            void on_writable(fd_t f);
             void on_expire(int id);
 
             fd_t accept();

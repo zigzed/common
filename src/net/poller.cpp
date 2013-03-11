@@ -139,7 +139,6 @@ namespace cxx {
         void poller::stop()
         {
             working_ = false;
-            threads_.join();
         }
 
         void poller::poll()

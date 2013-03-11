@@ -110,6 +110,18 @@ namespace cxx {
             queue_->send(m);
         }
 
+        void scheduler::await(coroutine *c, net::fd_t f, net::poller::readable r)
+        {
+            queue_->wait(c, f, r);
+            c->shift();
+        }
+
+        void scheduler::await(coroutine *c, net::fd_t f, net::poller::writable w)
+        {
+            queue_->wait(c, f, w);
+            c->shift();
+        }
+
         scheduler::context* scheduler::ctxt()
         {
             return ctxt_;

@@ -99,7 +99,6 @@ namespace cxx {
             cxx::sys::plainmutex mutex_;
             cxx::sys::atomic_t  payload_;
             timers_t            expires_;
-            cxx::sys::thread    threads_;
             bool                working_;
             int                 timeout_;
         };

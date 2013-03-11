@@ -4,6 +4,7 @@
 #include "common/gtest/gtest.h"
 #include "common/con/coroutine.h"
 #include "common/con/channel.h"
+#include "common/con/net.h"
 #include "common/sys/threads.h"
 #include "common/sys/cputimes.h"
 #include "common/sys/mutex.h"
@@ -356,6 +357,68 @@ TEST(coroutine, chan_mpsc_s)
     printf("perf chan_mpsc_s done\n");
 
     //printf("perf thread chan: %s\n", usage.report().c_str());
+}
+
+void echo(cxx::con::coroutine* c, void* arg)
+{
+    cxx::net::fd_t fd = (cxx::net::fd_t)(long)(arg);
+    cxx::con::socketor s(fd);
+
+    char buf[1024];
+    int  len = 1024;
+    while((len = s.recv(c, buf, 1024)) > 0)
+        s.send(c, buf, len);
+
+    s.close();
+}
+
+void server(cxx::con::coroutine* c, void* arg)
+{
+    cxx::con::acceptor s(true, "*", 4321);
+    cxx::net::fd_t f;
+    while((f = s.accept(c)) >= 0) {
+        printf("connection accepted\n");
+        c->sched()->spawn(echo, (void* )f);
+    }
+}
+
+void client(cxx::con::coroutine* c, void* arg)
+{
+    cxx::con::connector x(true);
+    cxx::net::fd_t f = x.connect(c, "127.0.0.1", 4321);
+    if(f == -1) {
+        printf("connecting failed\n");
+        return;
+    }
+    printf("connected\n");
+
+    cxx::con::socketor s(f);
+
+    char buf[1024];
+    int  len = 1024;
+
+    for(int i = 0; i < 1000000; ++i) {
+        s.send(c, "test", 4);
+        s.recv(c, buf, 1024);
+        if(i % 1000 == 0) {
+            printf("%d ", i);
+        }
+    }
+
+    printf("\nclient done\n");
+}
+
+TEST(coroutine, net)
+{
+    cxx::con::scheduler_group c(2);
+
+    c[0]->spawn(server, NULL);
+    c[1]->spawn(client, NULL);
+
+    cxx::sys::cpu_times usage;
+
+    c.start();
+    printf("network done\n");
 }
 
 

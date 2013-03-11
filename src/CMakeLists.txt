@@ -84,6 +84,8 @@ set(COMMON_SRC
     con/context.h con/context.cpp
     ../common/con/channel.h con/scheduler.cpp
     con/command.h con/command.cpp
+    ../common/con/net.h con/net.cpp
+    ../common/con/fd.h con/fd.cpp
     ../common/alg/crc.h alg/crc.cpp
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp

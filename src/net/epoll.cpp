@@ -32,7 +32,7 @@ namespace cxx {
             pe->cb          = sink;
 
             int rc = epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &pe->ev);
-            ENFORCE(rc != -1)(rc)(cxx::sys::err::get());
+            ENFORCE(rc != -1 /*|| cxx::sys::err::get() == EEXIST*/)(rc)(cxx::sys::err::get());
 
             adj_loads(1);
             return pe;

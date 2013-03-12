@@ -398,13 +398,14 @@ void client(cxx::con::coroutine* c, void* arg)
     int  len = 1024;
 
     for(int i = 0; i < 1000000; ++i) {
-        s.send(c, "test", 4);
+        s.send(c, buf, 1024);
         s.recv(c, buf, 1024);
         if(i % 1000 == 0) {
             printf("%d ", i);
         }
     }
 
+    s.close();
     printf("\nclient done\n");
 }
 
@@ -413,7 +414,7 @@ TEST(coroutine, net)
     cxx::con::scheduler_group c(2);
 
     c[0]->spawn(server, NULL);
-    c[1]->spawn(client, NULL);
+    c[0]->spawn(client, NULL);
 
     cxx::sys::cpu_times usage;
 

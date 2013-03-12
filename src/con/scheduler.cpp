@@ -55,6 +55,7 @@ namespace cxx {
             cxx::datetime now;
             while(running) {
                 command   m;
+                timeout = calc_expire();
                 if(queue_->recv(&m, timeout)) {
                     switch(m.type) {
                     case command::spawn:
@@ -76,13 +77,7 @@ namespace cxx {
                         break;
                     }
                 }
-                else {
-                    timeout = calc_expire();
-                    if(timeout == -1) {
-                        // default to 500ms
-                        timeout = 500;
-                    }
-                }
+
                 if(ready_.empty() && block_.empty() && queue_->size() == 0) {
                     running = false;
                     break;
@@ -149,6 +144,7 @@ namespace cxx {
             shift(ctxt_, c->ctxt());
             if(c->isdead()) {
                 ready_.erase(c);
+                queue_->drop(c);
                 block_t::iterator it = block_.begin();
                 while(it != block_.end()) {
                     if(it->second == c) {
@@ -164,7 +160,7 @@ namespace cxx {
         int scheduler::calc_expire()
         {
             if(block_.empty()) {
-                return -1;
+                return 500;
             }
 
             cxx::datetime current = cxx::datetime::now();
@@ -181,7 +177,7 @@ namespace cxx {
                 }
             }
 
-            return -1;
+            return 500;
         }
 
         ////////////////////////////////////////////////////////////////////////

@@ -45,7 +45,6 @@ namespace cxx {
             typedef cxx::net::poller::handle_t                  handle_t;
             typedef std::map<cxx::net::fd_t, handle_t >         hmap_t;
             typedef std::map<cxx::net::fd_t, ch >               wait_t;
-            typedef std::map<int, coroutine* >                  time_t;
 
             struct receiver;
 
@@ -58,7 +57,6 @@ namespace cxx {
             poll_t*     poller_;
             receiver*   future_;
             wait_t      waiter_;
-            time_t      expire_;
             hmap_t      handle_;
 
             explicit reactor(scheduler* s);
@@ -68,7 +66,8 @@ namespace cxx {
             size_t  size() const;
             void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r);
             void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
-            void    time(coroutine* c, int id);
+            void    time(coroutine* c, int ms);
+            void    drop(coroutine* c);
         };
 
     }

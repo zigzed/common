@@ -9,11 +9,12 @@ namespace cxx {
 
             explicit receiver(scheduler* s, sys::event& e,
                               scheduler::reactor::wait_t* w,
-                              scheduler::reactor::time_t* t)
-                : s_(s), e_(e), r_(false), w_(w), t_(t) {}
+                              cxx::net::poller* p)
+                : s_(s), e_(e), r_(false), w_(w), p_(p) {}
 
             void on_readable(cxx::net::fd_t fd) {
                 if(e_.handle() == fd) {
+                    p_->del_fd(h_, cxx::net::poller::readable());
                     r_ = true;
                     return;
                 }
@@ -21,8 +22,9 @@ namespace cxx {
                 assert(it != w_->end());
                 if(it == w_->end())
                     return;
+                p_->del_fd(it->second.h, cxx::net::poller::readable());
                 coroutine* c = it->second.c;
-                //w_->erase(it);
+                w_->erase(it);
                 s_->resume(c);
             }
             void on_writable(cxx::net::fd_t fd) {
@@ -30,18 +32,13 @@ namespace cxx {
                 assert(it != w_->end());
                 if(it == w_->end())
                     return;
+                p_->del_fd(it->second.h, cxx::net::poller::writable());
                 coroutine* c = it->second.c;
-                //w_->erase(it);
+                w_->erase(it);
                 s_->resume(c);
             }
             void on_expire(int id) {
-                scheduler::reactor::time_t::iterator it = t_->find(id);
-                assert(it != t_->end());
-                if(it == t_->end())
-                    return;
-                coroutine* c = it->second;
-                t_->erase(it);
-                s_->resume(c);
+                assert(false);
             }
 
             scheduler*                  s_;
@@ -49,7 +46,7 @@ namespace cxx {
             bool                        r_;
             cxx::net::poller::handle_t  h_;
             scheduler::reactor::wait_t* w_;
-            scheduler::reactor::time_t* t_;
+            cxx::net::poller*           p_;
         };
 
         scheduler::reactor::reactor(scheduler* s)
@@ -59,7 +56,7 @@ namespace cxx {
             bool ok = queue_.read(NULL);
             ENFORCE(!ok);
             poller_ = cxx::net::poller::create();
-            future_  = new scheduler::reactor::receiver(s, event_, &waiter_, &expire_);
+            future_  = new scheduler::reactor::receiver(s, event_, &waiter_, poller_);
             future_->h_ = poller_->add_fd(event_.handle(), future_);
         }
 
@@ -133,9 +130,9 @@ namespace cxx {
             }
             else {
                 h = poller_->add_fd(f, future_);
-                waiter_.insert(std::make_pair(f, ch(c, h)));
                 handle_.insert(std::make_pair(f, h));
             }
+            waiter_.insert(std::make_pair(f, ch(c, h)));
             poller_->add_fd(h, r);
         }
 
@@ -148,15 +145,27 @@ namespace cxx {
             }
             else {
                 h = poller_->add_fd(f, future_);
-                waiter_.insert(std::make_pair(f, ch(c, h)));
                 handle_.insert(std::make_pair(f, h));
             }
+            waiter_.insert(std::make_pair(f, ch(c, h)));
             poller_->add_fd(h, w);
         }
 
-        void scheduler::reactor::time(coroutine *c, int i)
+        void scheduler::reactor::drop(coroutine *c)
         {
-            expire_.insert(std::make_pair(i, c));
+            {
+                wait_t::iterator it = waiter_.begin();
+                while(it != waiter_.end()) {
+                    if(it->second.c == c) {
+                        poller_->del_fd(it->second.h);
+                        waiter_.erase(it++);
+                    }
+                    else {
+                        ++it;
+                    }
+                }
+            }
+
         }
 
     }

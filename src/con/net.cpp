@@ -92,7 +92,7 @@ namespace cxx {
             }
 
             cxx::net::ip::unblocking(fd);
-            cxx::net::tcp::no_delays(fd);
+            //cxx::net::tcp::no_delays(fd);
 
             return fd;
         }

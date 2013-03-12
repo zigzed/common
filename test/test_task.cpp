@@ -367,16 +367,20 @@ void echo(cxx::con::coroutine* c, void* arg)
     char buf[1024];
     int  len = 1024;
     while((len = s.recv(c, buf, 1024)) > 0)
-        s.send(c, buf, len);
+        ;
+        //s.send(c, buf, len);
 
     s.close();
+    printf("echo done\n");
 }
 
 void server(cxx::con::coroutine* c, void* arg)
 {
     cxx::con::acceptor s(true, "*", 4321);
     cxx::net::fd_t f;
-    while((f = s.accept(c)) >= 0) {
+    // 在这里我们只测试接收一个连接请求，这是为了进行后续的测试。如果正是的代码需要用
+    // while 代替 if
+    if((f = s.accept(c)) >= 0) {
         printf("connection accepted\n");
         c->sched()->spawn(echo, (void* )f);
     }
@@ -399,10 +403,6 @@ void client(cxx::con::coroutine* c, void* arg)
 
     for(int i = 0; i < 1000000; ++i) {
         s.send(c, buf, 1024);
-        s.recv(c, buf, 1024);
-        if(i % 1000 == 0) {
-            printf("%d ", i);
-        }
     }
 
     s.close();

@@ -189,10 +189,9 @@ namespace cxx {
 
         int socketor::recv(coroutine *c, char *data, size_t size)
         {
-            int m = 0;
-            while((m = ::read(fd_, data, size)) < 0 && cxx::sys::err::get() == EAGAIN) {
+            int m;
+            while((m = ::read(fd_, data, size)) < 0 && cxx::sys::err::get() == EAGAIN)
                 c->sched()->await(c, fd_, cxx::net::poller::readable());
-            }
             return m;
         }
 

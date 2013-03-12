@@ -57,6 +57,7 @@ namespace cxx {
                 int rc = ::close(s);
                 ENFORCE(rc == 0)(rc)(cxx::sys::err::get());
 #else
+                ::shutdown(s, SHUT_WR);
                 ::closesocket(s);
 #endif
                 s = -1;

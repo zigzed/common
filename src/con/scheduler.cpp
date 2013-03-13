@@ -33,9 +33,17 @@ namespace cxx {
             delete ctxt_;
         }
 
-        void scheduler::spawn(taskptr func, void *arg, int stack)
+        void scheduler::spawn(taskptr func, void *arg, int stack_size)
         {
-            coroutine*  c = new coroutine(this, func, arg, stack);
+            /** 避免多次内存分配，一次性将 coroutine、context 和栈的内存分配完成 */
+            size_t memlen = (sizeof(coroutine) + stack_size + sizeof(scheduler::context) +
+                             stack::page_size() - 1) /
+                            stack::page_size() * stack::page_size();
+            char*  buffer = new char[memlen];
+            coroutine* c  = new (buffer) coroutine(this, func, arg,
+                                                   buffer + sizeof(coroutine),
+                                                   memlen - sizeof(coroutine));
+
             c->id_ = (int)++idgen;
             command   m;
             m.type = command::spawn;
@@ -154,6 +162,11 @@ namespace cxx {
                         it++;
                     }
                 }
+                /** 因为 coroutine 是从已经分配的内存上构造的，因此只需要调用析构函数，不
+                 * 需要调用内存释放函数就可以了。内存释放通过 char* 的方式释放 */
+                char* buffer = reinterpret_cast<char* >(c);
+                c->~coroutine();
+                delete[] buffer;
             }
         }
 

@@ -29,6 +29,8 @@ namespace cxx {
 
         class stack {
         public:
+            /** get the size of page in bytes */
+            static size_t page_size();
             /** coroutine's default stack size (16 pages) */
             static size_t default_size();
             /** coroutine's minimum stack size (2 pages) */
@@ -114,7 +116,7 @@ namespace cxx {
             coroutine& operator= (const coroutine& rhs);
 
             friend class scheduler;
-            coroutine(scheduler* s, taskptr f, void* a, size_t stack);
+            coroutine(scheduler* s, taskptr f, void* a, char* mem, size_t size);
             ~coroutine();
 
             static void tmain(unsigned int y, unsigned int x);

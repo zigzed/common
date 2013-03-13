@@ -12,7 +12,7 @@ namespace cxx {
     namespace con {
 
         ////////////////////////////////////////////////////////////////////////
-        static size_t page_size()
+        size_t stack::page_size()
         {
             return sysconf(_SC_PAGESIZE);
         }
@@ -56,18 +56,19 @@ namespace cxx {
             scheduler::shift(c->ctxt(), c->sched()->ctxt());
         }
 
-        coroutine::coroutine(scheduler *s, taskptr f, void *a, size_t stack)
-            : stack_(NULL), size_(stack), sche_(s), func_(f), args_(a),
+        coroutine::coroutine(scheduler *s, taskptr f, void *a, char* mem, size_t size)
+            : stack_(NULL), size_(size), sche_(s), func_(f), args_(a),
               ctxt_(NULL), stop_(0), dead_(0)
         {
-            size_   = (stack + page_size() - 1) / page_size() * page_size();
-            stack_  = new unsigned char[size_];
-            if(stack_ == NULL) {
+            if(mem == NULL) {
                 throw coroutine_error(0, "out of memory");
             }
 
-            ctxt_ = new scheduler::context;
+            /** 避免多次内存分配，将 context 直接从 stack 上分配 */
+            ctxt_ = new (mem) scheduler::context;
             memset(&ctxt_->uc, 0, sizeof(ctxt_->uc));
+            stack_ = reinterpret_cast<unsigned char* >(mem + sizeof(scheduler::context));
+            size_ -= sizeof(scheduler::context);
 
             sigset_t zero;
             sigemptyset(&zero);
@@ -110,8 +111,7 @@ namespace cxx {
 
         coroutine::~coroutine()
         {
-            delete[] stack_;
-            delete ctxt_;
+            //ctxt_->~ctxt();
         }
 
         void coroutine::yield()

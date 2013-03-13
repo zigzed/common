@@ -18,30 +18,34 @@ namespace cxx {
 
         class acceptor {
         public:
-            acceptor(bool istcp, const char* server, unsigned short port);
-            cxx::net::fd_t accept(coroutine* c);
+            acceptor(coroutine* c, bool istcp, const char* server, unsigned short port);
+            ~acceptor();
+            cxx::net::fd_t accept();
         private:
             bool            istcp_;
             cxx::net::fd_t  socks_;
+            coroutine*      task_;
         };
 
         class connector {
         public:
-            explicit connector(bool istcp);
-            cxx::net::fd_t connect(coroutine* c, const char* server, unsigned short port);
+            explicit connector(coroutine* c, bool istcp);
+            cxx::net::fd_t connect(const char* server, unsigned short port);
         private:
 
-            bool    istcp_;
+            bool        istcp_;
+            coroutine*  task_;
         };
 
         class socketor {
         public:
-            explicit socketor(cxx::net::fd_t fd);
-            int     recv(coroutine* c, char* data, size_t size);
-            int     send(coroutine* c, const char* data, size_t size);
+            explicit socketor(coroutine* c, cxx::net::fd_t fd);
+            int     recv(char* data, size_t size);
+            int     send(const char* data, size_t size);
             void    close();
         private:
             cxx::net::fd_t  fd_;
+            coroutine*      cr_;
         };
 
     }

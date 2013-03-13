@@ -87,6 +87,7 @@ namespace cxx {
              * thread
              */
             void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
+            void        close(cxx::net::fd_t f);
 
             /** switch the coroutine from 'f' to 't'
              * complexity: O(1)

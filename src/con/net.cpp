@@ -34,8 +34,8 @@ namespace cxx {
         }
 
 
-        acceptor::acceptor(bool istcp, const char *server, unsigned short port)
-            : istcp_(istcp), socks_(-1)
+        acceptor::acceptor(coroutine* c, bool istcp, const char *server, unsigned short port)
+            : istcp_(istcp), socks_(-1), task_(c)
         {
             int         proto = istcp_ ? SOCK_STREAM : SOCK_DGRAM;
             sockaddr_in sa;
@@ -80,9 +80,15 @@ namespace cxx {
             }
         }
 
-        cxx::net::fd_t acceptor::accept(coroutine *c)
+        acceptor::~acceptor()
         {
-            c->sched()->await(c, socks_, cxx::net::poller::readable());
+            task_->sched()->close(socks_);
+            cxx::net::ip::closesocket(socks_);
+        }
+
+        cxx::net::fd_t acceptor::accept()
+        {
+            task_->sched()->await(task_, socks_, cxx::net::poller::readable());
 
             sockaddr_in sa;
             socklen_t   len = sizeof(sa);
@@ -98,12 +104,12 @@ namespace cxx {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        connector::connector(bool istcp)
-            : istcp_(istcp)
+        connector::connector(coroutine *c, bool istcp)
+            : istcp_(istcp), task_(c)
         {
         }
 
-        cxx::net::fd_t connector::connect(coroutine *c, const char *server, unsigned short port)
+        cxx::net::fd_t connector::connect(const char *server, unsigned short port)
         {
             unsigned int ip4;
             if(!netlookup(server, &ip4)) {
@@ -139,7 +145,7 @@ namespace cxx {
                 }
             }
 
-            c->sched()->await(c, fd, cxx::net::poller::writable());
+            task_->sched()->await(task_, fd, cxx::net::poller::writable());
 
             socklen_t sn = sizeof(sa);
             if(getpeername(fd, (sockaddr* )&sa, &sn) >= 0) {
@@ -159,25 +165,26 @@ namespace cxx {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        socketor::socketor(net::fd_t fd)
-            : fd_(fd)
+        socketor::socketor(coroutine *c, net::fd_t fd)
+            : fd_(fd), cr_(c)
         {
             assert(fd_ != -1);
         }
 
         void socketor::close()
         {
+            cr_->sched()->close(fd_);
             cxx::net::ip::closesocket(fd_);
         }
 
-        int socketor::send(coroutine *c, const char *data, size_t size)
+        int socketor::send(const char *data, size_t size)
         {
             int m, tot;
 
             for(tot = 0; tot < size; tot += m) {
                 while((m = ::write(fd_, data + tot, size - tot)) < 0 &&
                       cxx::sys::err::get() == EAGAIN) {
-                    c->sched()->await(c, fd_, cxx::net::poller::writable());
+                    cr_->sched()->await(cr_, fd_, cxx::net::poller::writable());
                 }
                 if(m < 0)
                     return m;
@@ -187,11 +194,11 @@ namespace cxx {
             return tot;
         }
 
-        int socketor::recv(coroutine *c, char *data, size_t size)
+        int socketor::recv(char *data, size_t size)
         {
             int m;
             while((m = ::read(fd_, data, size)) < 0 && cxx::sys::err::get() == EAGAIN)
-                c->sched()->await(c, fd_, cxx::net::poller::readable());
+                cr_->sched()->await(cr_, fd_, cxx::net::poller::readable());
             return m;
         }
 

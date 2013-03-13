@@ -364,11 +364,11 @@ TEST(coroutine, chan_mpsc_s)
 void echo(cxx::con::coroutine* c, void* arg)
 {
     cxx::net::fd_t fd = (cxx::net::fd_t)(long)(arg);
-    cxx::con::socketor s(fd);
+    cxx::con::socketor s(c, fd);
 
     char buf[1024];
     int  len = 1024;
-    while((len = s.recv(c, buf, 1024)) > 0)
+    while((len = s.recv(buf, 1024)) > 0)
         ;
         //s.send(c, buf, len);
 
@@ -378,11 +378,11 @@ void echo(cxx::con::coroutine* c, void* arg)
 
 void server(cxx::con::coroutine* c, void* arg)
 {
-    cxx::con::acceptor s(true, "*", 4321);
+    cxx::con::acceptor s(c, true, "*", 4321);
     cxx::net::fd_t f;
     // 在这里我们只测试接收一个连接请求，这是为了进行后续的测试。如果正是的代码需要用
     // while 代替 if
-    if((f = s.accept(c)) >= 0) {
+    if((f = s.accept()) >= 0) {
         printf("connection accepted: %d\n", f);
         c->sched()->spawn(echo, (void* )f);
     }
@@ -390,21 +390,21 @@ void server(cxx::con::coroutine* c, void* arg)
 
 void client(cxx::con::coroutine* c, void* arg)
 {
-    cxx::con::connector x(true);
-    cxx::net::fd_t f = x.connect(c, "127.0.0.1", 4321);
+    cxx::con::connector x(c, true);
+    cxx::net::fd_t f = x.connect("127.0.0.1", 4321);
     if(f == -1) {
         printf("connecting failed\n");
         return;
     }
     printf("connected: %d\n", f);
 
-    cxx::con::socketor s(f);
+    cxx::con::socketor s(c, f);
 
     char buf[1024];
     int  len = 1024;
 
     for(int i = 0; i < 1000000; ++i) {
-        s.send(c, buf, 1024);
+        s.send(buf, 1024);
     }
 
     s.close();

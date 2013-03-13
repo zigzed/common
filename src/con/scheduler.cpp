@@ -123,6 +123,11 @@ namespace cxx {
             c->shift();
         }
 
+        void scheduler::close(net::fd_t f)
+        {
+            queue_->drop(f);
+        }
+
         scheduler::context* scheduler::ctxt()
         {
             return ctxt_;

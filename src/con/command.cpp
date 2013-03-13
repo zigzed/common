@@ -62,11 +62,10 @@ namespace cxx {
 
         scheduler::reactor::~reactor()
         {
-            poller_->stop();
-            poller_->del_fd(future_->h_);
             for(hmap_t::iterator it = handle_.begin(); it != handle_.end(); ++it) {
                 poller_->del_fd(it->second);
             }
+            poller_->del_fd(future_->h_);
             poller_->destroy();
             delete future_;
         }
@@ -151,14 +150,22 @@ namespace cxx {
             poller_->add_fd(h, w);
         }
 
+        void scheduler::reactor::drop(net::fd_t f)
+        {
+            hmap_t::iterator it = handle_.find(f);
+            if(it != handle_.end()) {
+                poller_->del_fd(it->second);
+                handle_.erase(it);
+            }
+            waiter_.erase(f);
+        }
+
         void scheduler::reactor::drop(coroutine *c)
         {
-            std::set<cxx::net::poller::handle_t >   handles;
             {
                 wait_t::iterator it = waiter_.begin();
                 while(it != waiter_.end()) {
                     if(it->second.c == c) {
-                        handles.insert(it->second.h);
                         poller_->del_fd(it->second.h);
                         waiter_.erase(it++);
                     }
@@ -167,18 +174,6 @@ namespace cxx {
                     }
                 }
             }
-            {
-                hmap_t::iterator it = handle_.begin();
-                while(it != handle_.end()) {
-                    if(handles.count(it->second)) {
-                        handle_.erase(it++);
-                    }
-                    else {
-                        ++it;
-                    }
-                }
-            }
-
         }
 
     }

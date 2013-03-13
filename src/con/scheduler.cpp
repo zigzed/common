@@ -142,12 +142,6 @@ namespace cxx {
 
         void scheduler::shift(scheduler::context *f, scheduler::context *t)
         {
-            // switch to the scheduler
-//            if(swapcontext(&f->uc, &t->uc) < 0) {
-//                int err = cxx::sys::err::get();
-//                fprintf(stderr, "swapcontext failed: %d - %s\n", err, cxx::sys::err::str(err).c_str());
-//                assert(0);
-//            }
             jump_fcontext(f, t, 0);
         }
 

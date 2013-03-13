@@ -66,7 +66,6 @@ namespace cxx {
             size_t  size() const;
             void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r);
             void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
-            void    time(coroutine* c, int ms);
             void    drop(coroutine* c);
         };
 

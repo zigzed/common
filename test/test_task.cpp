@@ -59,7 +59,9 @@ TEST(coroutine, perfmance)
         c.spawn(perf, (void* )i, cxx::con::stack::minimum_size());
     }
 
+    cxx::sys::cpu_times usage;
     c.start();
+    printf("%s\n", usage.report().c_str());
 
     printf("perf done\n");
 }
@@ -381,7 +383,7 @@ void server(cxx::con::coroutine* c, void* arg)
     // 在这里我们只测试接收一个连接请求，这是为了进行后续的测试。如果正是的代码需要用
     // while 代替 if
     if((f = s.accept(c)) >= 0) {
-        printf("connection accepted\n");
+        printf("connection accepted: %d\n", f);
         c->sched()->spawn(echo, (void* )f);
     }
 }
@@ -394,7 +396,7 @@ void client(cxx::con::coroutine* c, void* arg)
         printf("connecting failed\n");
         return;
     }
-    printf("connected\n");
+    printf("connected: %d\n", f);
 
     cxx::con::socketor s(f);
 

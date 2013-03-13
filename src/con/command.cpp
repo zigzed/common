@@ -153,12 +153,25 @@ namespace cxx {
 
         void scheduler::reactor::drop(coroutine *c)
         {
+            std::set<cxx::net::poller::handle_t >   handles;
             {
                 wait_t::iterator it = waiter_.begin();
                 while(it != waiter_.end()) {
                     if(it->second.c == c) {
+                        handles.insert(it->second.h);
                         poller_->del_fd(it->second.h);
                         waiter_.erase(it++);
+                    }
+                    else {
+                        ++it;
+                    }
+                }
+            }
+            {
+                hmap_t::iterator it = handle_.begin();
+                while(it != handle_.end()) {
+                    if(handles.count(it->second)) {
+                        handle_.erase(it++);
                     }
                     else {
                         ++it;

@@ -56,6 +56,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_custom_target(cxxliblua ALL DEPENDS ${LIBRARY_OUTPUT_PATH}/libluajit.a)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+enable_language(ASM)
+
 set(COMMON_SRC
     ../common/config.h
     ../common/datetime.h datetime.cpp
@@ -81,7 +83,9 @@ set(COMMON_SRC
     ../common/sys/atomic.h sys/atomic.cpp
     ../common/sys/error.h sys/error.cpp
     ../common/con/coroutine.h con/coroutine/asm.S con/coroutine.cpp 
-    con/context.h con/context.cpp
+    #con/context.h con/context.cpp
+    con/fcontext/jump_x86_64_sysv_elf_gas.S
+    con/fcontext/make_x86_64_sysv_elf_gas.S
     ../common/con/channel.h con/scheduler.cpp
     con/command.h con/command.cpp
     ../common/con/net.h con/net.cpp

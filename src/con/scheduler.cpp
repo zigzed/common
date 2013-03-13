@@ -1,7 +1,8 @@
 /** Copyright (C) 2013 wilburlang@gmail.com
  */
 #include "common/con/coroutine.h"
-#include "context.h"
+//#include "context.h"
+#include "fcontext.h"
 #include "command.h"
 
 namespace cxx {
@@ -23,7 +24,7 @@ namespace cxx {
         ////////////////////////////////////////////////////////////////////////
         scheduler::scheduler()
         {
-            ctxt_   = new context;
+            ctxt_   = new context();
             queue_  = new scheduler::reactor(this);
         }
 
@@ -31,18 +32,15 @@ namespace cxx {
         {
             quit();
             delete ctxt_;
+            delete queue_;
         }
 
         void scheduler::spawn(taskptr func, void *arg, int stack_size)
         {
-            /** 避免多次内存分配，一次性将 coroutine、context 和栈的内存分配完成 */
-            size_t memlen = (sizeof(coroutine) + stack_size + sizeof(scheduler::context) +
-                             stack::page_size() - 1) /
+            size_t length = (stack_size + stack::page_size() - 1 + sizeof(coroutine) + sizeof(context)) /
                             stack::page_size() * stack::page_size();
-            char*  buffer = new char[memlen];
-            coroutine* c  = new (buffer) coroutine(this, func, arg,
-                                                   buffer + sizeof(coroutine),
-                                                   memlen - sizeof(coroutine));
+            char*  buffer = new char[length];
+            coroutine* c  = new (buffer) coroutine(this, func, arg, buffer + sizeof(coroutine), length - sizeof(coroutine));
 
             c->id_ = (int)++idgen;
             command   m;
@@ -140,16 +138,17 @@ namespace cxx {
         void scheduler::shift(scheduler::context *f, scheduler::context *t)
         {
             // switch to the scheduler
-            if(swapcontext(&f->uc, &t->uc) < 0) {
-                int err = cxx::sys::err::get();
-                fprintf(stderr, "swapcontext failed: %d - %s\n", err, cxx::sys::err::str(err).c_str());
-                assert(0);
-            }
+//            if(swapcontext(&f->uc, &t->uc) < 0) {
+//                int err = cxx::sys::err::get();
+//                fprintf(stderr, "swapcontext failed: %d - %s\n", err, cxx::sys::err::str(err).c_str());
+//                assert(0);
+//            }
+            jump_fcontext(f, t, 0);
         }
 
         void scheduler::do_schedule(coroutine *c)
         {
-            shift(ctxt_, c->ctxt());
+            jump_fcontext(ctxt_, c->ctxt(), (intptr_t)c);
             if(c->isdead()) {
                 ready_.erase(c);
                 queue_->drop(c);
@@ -162,11 +161,9 @@ namespace cxx {
                         it++;
                     }
                 }
-                /** 因为 coroutine 是从已经分配的内存上构造的，因此只需要调用析构函数，不
-                 * 需要调用内存释放函数就可以了。内存释放通过 char* 的方式释放 */
-                char* buffer = reinterpret_cast<char* >(c);
+                char* p = (char* )c;
                 c->~coroutine();
-                delete[] buffer;
+                delete[] p;
             }
         }
 

@@ -39,30 +39,59 @@ namespace cxx {
             static size_t maximum_size();
         };
 
+        struct fcontext_t;
+
         /** scheduler is coroutine's run environment */
         class scheduler {
         public:
-            struct context;
+            typedef fcontext_t context;
 
             scheduler();
             ~scheduler();
 
-            /** create a coroutine task from the given function */
+            /** create a coroutine task from the given function
+             * complexity: O(1)
+             * threadsafe: yes
+             */
             void        spawn(taskptr func, void* arg, int stack = stack::default_size());
             /** starting the coroutine with entry function fn */
             void        start();
+            /** resume the corotuine
+             * complexity: O(1)
+             * threadsafe: yes
+             */
             void        resume(coroutine* c);
+            /** yield coroutine at least 'ms' milliseconds
+             * complexity: O(logN)
+             * threadsafe: yes
+             */
             void        sleep(coroutine* c, int ms);
+            /** get the context of the scheduler, used internal
+             * complexity: O(1)
+             * threadsafe: yes
+             */
             context*    ctxt();
 
             /** quit the scheduler */
             void        quit ();
 
-            /** async wait for fd readable */
+            /** async wait for fd readable
+             * complexity: O(logN)
+             * threadsafe: no. can only be used by coroutine in the current scheduler
+             * thread
+             */
             void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r);
-            /** async wait for fd writable */
+            /** async wait for fd writable
+             * complexity: O(logN)
+             * threadsafe: no. can only be used by coroutine in the current scheduler
+             * thread
+             */
             void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
 
+            /** switch the coroutine from 'f' to 't'
+             * complexity: O(1)
+             * threadsafe: no. use internal
+             */
             static void shift(context* f, context* t);
         private:
             scheduler(const scheduler& rhs);
@@ -119,7 +148,8 @@ namespace cxx {
             coroutine(scheduler* s, taskptr f, void* a, char* mem, size_t size);
             ~coroutine();
 
-            static void tmain(unsigned int y, unsigned int x);
+            //static void tmain(unsigned int y, unsigned int x);
+            static void tmain(intptr_t arg);
 
             unsigned char*      stack_;
             size_t              size_;

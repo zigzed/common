@@ -4,69 +4,57 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef BOOST_CONTEXT_DETAIL_FCONTEXT_PPC_H
-#define BOOST_CONTEXT_DETAIL_FCONTEXT_PPC_H
+#ifndef CXX_CON_DETAIL_FCONTEXT_PPC_H
+#define CXX_CON_DETAIL_FCONTEXT_PPC_H
 
 #include <cstddef>
 
-#include <boost/config.hpp>
-#include <boost/cstdint.hpp>
+namespace cxx {
+    namespace con {
 
-#include <boost/context/detail/config.hpp>
+        extern "C" {
 
-#ifdef BOOST_HAS_ABI_HEADERS
-# include BOOST_ABI_PREFIX
-#endif
 
-namespace boost {
-namespace context {
+            struct stack_t
+            {
+                void    *   sp;
+                std::size_t size;
 
-extern "C" {
+                stack_t() :
+                    sp( 0), size( 0)
+                {}
+            };
 
-#define BOOST_CONTEXT_CALLDECL
+            struct fp_t
+            {
+                uint64_t     fc_freg[19];
 
-struct stack_t
-{
-    void    *   sp;
-    std::size_t size;
+                fp_t() :
+                    fc_freg()
+                {}
+            };
 
-    stack_t() :
-        sp( 0), size( 0)
-    {}
-};
-
-struct fp_t
-{
-    boost::uint64_t     fc_freg[19];
-
-    fp_t() :
-        fc_freg()
-    {}
-};
-
-struct fcontext_t
-{
+            struct fcontext_t
+            {
 # if defined(__powerpc64__)
-    boost::uint64_t     fc_greg[23];
+                uint64_t     fc_greg[23];
 # else
-    boost::uint32_t     fc_greg[23];
+                uint32_t     fc_greg[23];
 # endif
-    stack_t             fc_stack;
-    fp_t                fc_fp;
+                stack_t             fc_stack;
+                fp_t                fc_fp;
 
-    fcontext_t() :
-        fc_greg(),
-        fc_stack(),
-        fc_fp()
-    {}
-};
+                fcontext_t() :
+                    fc_greg(),
+                    fc_stack(),
+                    fc_fp()
+                {}
+            };
 
+        }
+
+    }
 }
 
-}}
 
-#ifdef BOOST_HAS_ABI_HEADERS
-# include BOOST_ABI_SUFFIX
 #endif
-
-#endif // BOOST_CONTEXT_DETAIL_FCONTEXT_PPC_H

@@ -58,6 +58,40 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 enable_language(ASM)
 
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+    if(${CMAKE_SYSTEM_NAME} MATCHES Linux)
+        set(FCONTEXT_SRC con/fcontext/jump_x86_64_sysv_elf_gas.S con/fcontext/make_x86_64_sysv_elf_gas.S)
+    elseif(${CMAKE_SYSTEM_NAME} MATCHES Windows)
+        set(FCONTEXT_SRC con/fcontext/jump_x86_64_ms_pe_masm.asm con/fcontext/make_x86_64_ms_pe_masm.asm)
+    elseif(${CMAKE_SYSTEM_NAME} MATCHES MACOSX)
+        set(FCONTEXT_SRC con/fcontext/jump_x86_64_sysv_macho_gas.S con/fcontext/make_x86_64_sysv_macho_gas.S)
+    endif()
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^i.86$")
+    if(${CMAKE_SYSTEM_NAME} MATCHES Linux)
+        set(FCONTEXT_SRC con/fcontext/jump_i386_sysv_elf_gas.S con/fcontext/make_i386_sysv_elf_gas.S)
+    elseif(${CMAKE_SYSTEM_NAME} MATCHES Windows)
+        set(FCONTEXT_SRC con/fcontext/jump_i386_ms_pe_masm.asm con/fcontext/make_i386_ms_pe_masm.asm)
+    elseif(${CMAKE_SYSTEM_NAME} MATCHES MACOSX)
+        set(FCONTEXT_SRC con/fcontext/jump_i386_sysv_macho_gas.S con/fcontext/make_i386_sysv_macho_gas.S)
+    endif()
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm")
+    if(${CMAKE_SYSTEM_NAME} MATCHES Linux)
+        set(FCONTEXT_SRC con/fcontext/jump_arm_aapcs_elf_gas.S con/fcontext/make_arm_arm_aapcs_gas.S)
+    elseif(${CMAKE_SYSTEM_NAME} MATCHES Windows)
+        set(FCONTEXT_SRC con/fcontext/jump_arm_aapcs_pe_armasm.asm con/fcontext/make_arm_aapcs_pe_armasm.asm)
+    elseif(${CMAKE_SYSTEM_NAME} MATCHES MACOSX)
+        set(FCONTEXT_SRC con/fcontext/jump_arm_sysv_macho_gas.S con/fcontext/make_arm_sysv_macho_gas.S)
+    endif()
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^mips")
+    set(FCONTEXT_SRC con/fcontext/jump_mips32_o32_elf_gas.S con/fcontext/make_mips32_o32_elf_gas.S)
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(powerpc|ppc)64")
+    set(FCONTEXT_SRC con/fcontext/jump_ppc64_sysv_elf_gas.S con/fcontext/make_ppc64_sysv_elf_gas.S)
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(powerpc|ppc)")
+    set(FCONTEXT_SRC con/fcontext/jump_ppc32_sysv_elf_gas.S con/fcontext/make_ppc32_sysv_elf_gas.S)
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^sparc")
+    set(FCONTEXT_SRC con/fcontext/jump_sparc64_sysv_elf_gas.S con/fcontext/make_sparc64_sysv_elf_gas.S)
+endif()
+
 set(COMMON_SRC
     ../common/config.h
     ../common/datetime.h datetime.cpp
@@ -84,8 +118,7 @@ set(COMMON_SRC
     ../common/sys/error.h sys/error.cpp
     ../common/con/coroutine.h con/coroutine/asm.S con/coroutine.cpp 
     #con/context.h con/context.cpp
-    con/fcontext/jump_x86_64_sysv_elf_gas.S
-    con/fcontext/make_x86_64_sysv_elf_gas.S
+    ${FCONTEXT_SRC}
     ../common/con/channel.h con/scheduler.cpp
     con/command.h con/command.cpp
     ../common/con/net.h con/net.cpp

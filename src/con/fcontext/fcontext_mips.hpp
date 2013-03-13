@@ -4,67 +4,54 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef BOOST_CONTEXT_DETAIL_FCONTEXT_MIPS_H
-#define BOOST_CONTEXT_DETAIL_FCONTEXT_MIPS_H
+#ifndef CXX_CON_DETAIL_FCONTEXT_MIPS_H
+#define CXX_CON_DETAIL_FCONTEXT_MIPS_H
 
 #include <cstddef>
 
-#include <boost/config.hpp>
-#include <boost/cstdint.hpp>
+namespace cxx {
+    namespace con {
 
-#include <boost/context/detail/config.hpp>
+        extern "C" {
 
-#ifdef BOOST_HAS_ABI_HEADERS
-# include BOOST_ABI_PREFIX
-#endif
+            // on MIPS we assume 64bit regsiters - even for 32bit ABIs
 
-namespace boost {
-namespace context {
+            struct stack_t
+            {
+                void    *   sp;
+                std::size_t size;
 
-extern "C" {
+                stack_t() :
+                    sp( 0), size( 0)
+                {}
+            };
 
-#define BOOST_CONTEXT_CALLDECL
+            struct fp_t
+            {
+                uint64_t     fc_freg[6];
 
-// on MIPS we assume 64bit regsiters - even for 32bit ABIs
+                fp_t() :
+                    fc_freg()
+                {}
+            };
 
-struct stack_t
-{
-    void    *   sp;
-    std::size_t size;
+            struct fcontext_t
+            {
+                uint32_t     fc_greg[12];
+                stack_t             fc_stack;
+                fp_t                fc_fp;
 
-    stack_t() :
-        sp( 0), size( 0)
-    {}
-};
+                fcontext_t() :
+                    fc_greg(),
+                    fc_stack(),
+                    fc_fp()
+                {}
+            };
 
-struct fp_t
-{
-    boost::uint64_t     fc_freg[6];
+        }
 
-    fp_t() :
-        fc_freg()
-    {}
-};
-
-struct fcontext_t
-{
-    boost::uint32_t     fc_greg[12];
-    stack_t             fc_stack;
-    fp_t                fc_fp;
-
-    fcontext_t() :
-        fc_greg(),
-        fc_stack(),
-        fc_fp()
-    {}
-};
-
+    }
 }
 
-}}
 
-#ifdef BOOST_HAS_ABI_HEADERS
-# include BOOST_ABI_SUFFIX
 #endif
-
-#endif // BOOST_CONTEXT_DETAIL_FCONTEXT_MIPS_H

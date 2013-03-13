@@ -4,65 +4,53 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef BOOST_CONTEXT_DETAIL_FCONTEXT_ARM_H
-#define BOOST_CONTEXT_DETAIL_FCONTEXT_ARM_H
+#ifndef CXX_CON_DETAIL_FCONTEXT_ARM_H
+#define CXX_CON_DETAIL_FCONTEXT_ARM_H
 
 #include <cstddef>
 
-#include <boost/config.hpp>
-#include <boost/cstdint.hpp>
 
-#include <boost/context/detail/config.hpp>
+namespace cxx {
+    namespace con {
 
-#ifdef BOOST_HAS_ABI_HEADERS
-# include BOOST_ABI_PREFIX
-#endif
+        extern "C" {
 
-namespace boost {
-namespace context {
+            struct stack_t
+            {
+                void    *   sp;
+                std::size_t size;
 
-extern "C" {
+                stack_t() :
+                    sp( 0), size( 0)
+                {}
+            };
 
-#define BOOST_CONTEXT_CALLDECL
+            struct fp_t
+            {
+                uint32_t     fc_freg[16];
 
-struct stack_t
-{
-    void    *   sp;
-    std::size_t size;
+                fp_t() :
+                    fc_freg()
+                {}
+            };
 
-    stack_t() :
-        sp( 0), size( 0)
-    {}
-};
+            struct fcontext_t
+            {
+                uint32_t     fc_greg[11];
+                stack_t             fc_stack;
+                fp_t                fc_fp;
 
-struct fp_t
-{
-    boost::uint32_t     fc_freg[16];
+                fcontext_t() :
+                    fc_greg(),
+                    fc_stack(),
+                    fc_fp()
+                {}
+            };
 
-    fp_t() :
-        fc_freg()
-    {}
-};
+        }
 
-struct fcontext_t
-{
-    boost::uint32_t     fc_greg[11];
-    stack_t             fc_stack;
-    fp_t                fc_fp;
-
-    fcontext_t() :
-        fc_greg(),
-        fc_stack(),
-        fc_fp()
-    {}
-};
-
+    }
 }
 
-}}
-
-#ifdef BOOST_HAS_ABI_HEADERS
-# include BOOST_ABI_SUFFIX
 #endif
 
-#endif // BOOST_CONTEXT_DETAIL_FCONTEXT_ARM_H

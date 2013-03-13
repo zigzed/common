@@ -12,38 +12,38 @@
 namespace cxx {
     namespace con {
 
-	extern "C" {
+        extern "C" {
 
-	    struct stack_t {
-	        void*   sp;
-	        size_t	size;
+            struct stack_t {
+                void*   sp;
+                size_t	size;
 
-	        stack_t() :
-	            sp( 0), size( 0)
-		{}
-	    };
+                stack_t() :
+                    sp( 0), size( 0)
+                {}
+            };
 
-	   struct fp_t {
-		int32_t     fc_freg[2];
+            struct fp_t {
+                int32_t     fc_freg[2];
 
-	        fp_t() :
-	            fc_freg()
-		{}
-	    };
+                fp_t() :
+                    fc_freg()
+                {}
+            };
 
-	    struct fcontext_t {
-	        uint64_t     fc_greg[8];
-	        stack_t      fc_stack;
-	        fp_t         fc_fp;
+            struct fcontext_t {
+                uint64_t     fc_greg[8];
+                stack_t      fc_stack;
+                fp_t         fc_fp;
 
-	        fcontext_t() :
-	            fc_greg(),
-	            fc_stack(),
-	            fc_fp()
-		{}
-	    };
+                fcontext_t() :
+                    fc_greg(),
+                    fc_stack(),
+                    fc_fp()
+                {}
+            };
 
-	}
+        }
 
     }
 }

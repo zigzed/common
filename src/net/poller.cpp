@@ -79,7 +79,7 @@ namespace cxx {
             timeout_ = timeout;
         }
 
-        void poller::add_timer(int id, int timeout, poller_event *sink)
+        void poller::add_timer(intptr_t id, int timeout, poller_event *sink)
         {
             cxx::datetime time = cxx::datetime::now() + cxx::datetimespan(0, 0, 0, 0, timeout);
             timer_info    info = { id, sink };
@@ -88,7 +88,7 @@ namespace cxx {
             expires_.insert(std::make_pair(time, info));
         }
 
-        void poller::del_timer(int id, poller_event *sink)
+        void poller::del_timer(intptr_t id, poller_event *sink)
         {
             cxx::sys::plainmutex::scopelock lock(mutex_);
             // time complexity of 'del_timer' is O(n). because it used rarely.

@@ -41,9 +41,9 @@ namespace cxx {
              * expiration, poller_event::on_expire() will be called with timer
              * identifier 'id'
              */
-            void add_timer(int id, int timeout, poller_event* sink);
+            void add_timer(intptr_t id, int timeout, poller_event* sink);
             /** cancel a timer */
-            void del_timer(int id, poller_event* sink);
+            void del_timer(intptr_t id, poller_event* sink);
             /** default timeout to expire when no 'timer' registered. */
             void def_timer(int timeout);
             /** return current load of the poller */
@@ -90,7 +90,7 @@ namespace cxx {
             poller& operator= (const poller& rhs);
 
             struct timer_info {
-                int             id;
+                intptr_t      id;
                 poller_event* sink;
             };
 

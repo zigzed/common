@@ -82,7 +82,7 @@ namespace cxx {
 
         acceptor::~acceptor()
         {
-            task_->sched()->close(socks_);
+            task_->sched()->erase(socks_);
             cxx::net::ip::closesocket(socks_);
         }
 
@@ -158,7 +158,7 @@ namespace cxx {
             if(n == 0) {
                 n = ECONNREFUSED;
             }
-            task_->sched()->close(fd);
+            task_->sched()->erase(fd);
             cxx::net::ip::closesocket(fd);
             sys::err::set(n);
 
@@ -174,7 +174,7 @@ namespace cxx {
 
         void socketor::close()
         {
-            cr_->sched()->close(fd_);
+            cr_->sched()->erase(fd_);
             cxx::net::ip::closesocket(fd_);
         }
 

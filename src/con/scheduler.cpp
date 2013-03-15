@@ -124,7 +124,7 @@ namespace cxx {
             c->shift();
         }
 
-        void scheduler::close(net::fd_t f)
+        void scheduler::erase(net::fd_t f)
         {
             queue_->drop(f);
         }

@@ -56,8 +56,16 @@ namespace cxx {
               ctxt_(NULL), stop_(0), dead_(0)
         {
             stack_ = (unsigned char* )mem;
+
             /** make_fcontext 需要根据栈的方向进行调整 */
-            ctxt_ = make_fcontext(stack_ + size_, size_, tmain);
+            int local_variable_1;
+            int local_variable_2;
+            if(&local_variable_1 < &local_variable_2) {
+                ctxt_ = make_fcontext(stack_, size_, tmain);
+            }
+            else {
+                ctxt_ = make_fcontext(stack_ + size_, size_, tmain);
+            }
         }
 
         coroutine::~coroutine()

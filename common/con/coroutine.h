@@ -73,7 +73,7 @@ namespace cxx {
             context*    ctxt();
 
             /** quit the scheduler */
-            void        quit ();
+            void        quit();
 
             /** async wait for fd readable
              * complexity: O(logN)
@@ -87,7 +87,12 @@ namespace cxx {
              * thread
              */
             void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w, int ms = -1);
-            void        close(cxx::net::fd_t f);
+            /** erase the waitable object asociated with fd
+             * complexity: O(logN)
+             * threadsafe: no. can only be used by coroutine in the current scheduler
+             * thread
+             */
+            void        erase(cxx::net::fd_t f);
 
             /** switch the coroutine from 'f' to 't'
              * complexity: O(1)

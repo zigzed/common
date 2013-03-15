@@ -27,6 +27,7 @@ namespace cxx {
             virtual void on_readable(fd_t fd) {}
             virtual void on_writable(fd_t fd) {}
             virtual void on_expire(intptr_t ) {}
+            virtual void on_failed(fd_t fd) {}
         };
 
         class poller {

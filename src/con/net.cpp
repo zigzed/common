@@ -109,7 +109,7 @@ namespace cxx {
         {
         }
 
-        cxx::net::fd_t connector::connect(const char *server, unsigned short port)
+        cxx::net::fd_t connector::connect(const char *server, unsigned short port, int ms)
         {
             unsigned int ip4;
             if(!netlookup(server, &ip4)) {
@@ -145,7 +145,7 @@ namespace cxx {
                 }
             }
 
-            task_->sched()->await(task_, fd, cxx::net::poller::writable());
+            task_->sched()->await(task_, fd, cxx::net::poller::writable(), ms);
 
             socklen_t sn = sizeof(sa);
             if(getpeername(fd, (sockaddr* )&sa, &sn) >= 0) {
@@ -158,6 +158,7 @@ namespace cxx {
             if(n == 0) {
                 n = ECONNREFUSED;
             }
+            task_->sched()->close(fd);
             cxx::net::ip::closesocket(fd);
             sys::err::set(n);
 

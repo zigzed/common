@@ -95,7 +95,7 @@ namespace cxx {
                 if(pe->fd == -1)
                     continue;
                 if(evbuf[i].events & (EPOLLERR | EPOLLHUP))
-                    pe->cb->on_readable(pe->fd);
+                    pe->cb->on_failed(pe->fd);
                 // in case of user call 'del_fd' in on_readable()
                 if(pe->fd == -1)
                     continue;

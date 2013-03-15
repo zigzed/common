@@ -88,7 +88,7 @@ namespace cxx {
                 if(pollfd_[i].fd == -1)
                     continue;
                 if(pollfd_[i].revents & (POLLERR | POLLHUP))
-                    tables_[pollfd_[i].fd].cb->on_readable(pollfd_[i].fd);
+                    tables_[pollfd_[i].fd].cb->on_failed(pollfd_[i].fd);
                 if(pollfd_[i].fd == -1)
                     continue;
                 if(pollfd_[i].revents & POLLIN)

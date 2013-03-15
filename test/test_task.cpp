@@ -483,6 +483,27 @@ TEST(coroutine, net_recv_timeout)
     printf("network done\n");
 }
 
+void client3(cxx::con::coroutine* c, void* arg)
+{
+    cxx::con::connector x(c, true);
+    cxx::net::fd_t f = x.connect("www.google.com", 4321, 500);
+    ASSERT_EQ(f, -1);
+    printf("client3 done1\n");
+    f = x.connect("127.0.0.1", 4321, 500);
+    ASSERT_EQ(f, -1);
+    printf("client3 done2\n");
+}
+
+TEST(coroutine, net_connect_timeout)
+{
+    cxx::con::scheduler_group c(1);
+
+    c[0]->spawn(client3, NULL);
+
+    c.start();
+    printf("network done\n");
+}
+
 
 int main(int argc, char* argv[])
 {

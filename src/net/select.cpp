@@ -109,7 +109,7 @@ namespace cxx {
                     continue;
                 if(FD_ISSET(fd_set_[iter].fd, &cur_er_)) {
                     ++done;
-                    fd_set_[iter].cb->on_readable(fd_set_[iter].fd);
+                    fd_set_[iter].cb->on_failed(fd_set_[iter].fd);
                 }
                 if(fd_set_[iter].fd == -1)
                     continue;

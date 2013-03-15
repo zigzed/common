@@ -40,7 +40,7 @@ namespace cxx {
         class socketor {
         public:
             explicit socketor(coroutine* c, cxx::net::fd_t fd);
-            int     recv(char* data, size_t size);
+            int     recv(char* data, size_t size, int ms = -1);
             int     send(const char* data, size_t size);
             void    close();
         private:

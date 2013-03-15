@@ -69,6 +69,7 @@ namespace cxx {
                         do_schedule(m.args.spawn.task);
                         break;
                     case command::resume:
+                        ready_.insert(m.args.spawn.task);
                         do_schedule(m.args.resume.task);
                         break;
                     case command::sleep:

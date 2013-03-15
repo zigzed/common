@@ -424,6 +424,65 @@ TEST(coroutine, net)
     printf("network done\n");
 }
 
+void echo2(cxx::con::coroutine* c, void* arg)
+{
+    cxx::net::fd_t fd = (cxx::net::fd_t)(long)(arg);
+    cxx::con::socketor s(c, fd);
+
+    char buf[1024];
+    int  len = 1024;
+    len = s.recv(buf, 1024, 400);
+    ASSERT_EQ(len, -2);
+
+    printf("echo2 done: %d\n", len);
+    s.close();
+}
+
+void server2(cxx::con::coroutine* c, void* arg)
+{
+    cxx::con::acceptor s(c, true, "*", 4321);
+    cxx::net::fd_t f;
+    // 在这里我们只测试接收一个连接请求，这是为了进行后续的测试。如果正是的代码需要用
+    // while 代替 if
+    if((f = s.accept()) >= 0) {
+        printf("connection accepted: %d\n", f);
+        c->sched()->spawn(echo2, (void* )f);
+    }
+}
+
+void client2(cxx::con::coroutine* c, void* arg)
+{
+    cxx::con::connector x(c, true);
+    cxx::net::fd_t f = x.connect("127.0.0.1", 4321);
+    if(f == -1) {
+        printf("connecting failed\n");
+        return;
+    }
+    printf("connected: %d\n", f);
+
+    cxx::con::socketor s(c, f);
+
+    char buf[1024];
+    int  len = 1024;
+
+    len = s.recv(buf, 1024, 500);
+    ASSERT_EQ(len, 0);
+    printf("\nclient2 done: %d\n", len);
+
+    s.close();
+}
+
+TEST(coroutine, net_recv_timeout)
+{
+    cxx::con::scheduler_group c(2);
+
+    c[0]->spawn(server2, NULL);
+    c[0]->spawn(client2, NULL);
+
+    c.start();
+    printf("network done\n");
+}
+
 
 int main(int argc, char* argv[])
 {

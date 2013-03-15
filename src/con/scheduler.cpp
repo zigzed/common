@@ -112,15 +112,15 @@ namespace cxx {
             queue_->send(m);
         }
 
-        void scheduler::await(coroutine *c, net::fd_t f, net::poller::readable r)
+        void scheduler::await(coroutine *c, net::fd_t f, net::poller::readable r, int ms)
         {
-            queue_->wait(c, f, r);
+            queue_->wait(c, f, r, ms);
             c->shift();
         }
 
-        void scheduler::await(coroutine *c, net::fd_t f, net::poller::writable w)
+        void scheduler::await(coroutine *c, net::fd_t f, net::poller::writable w, int ms)
         {
-            queue_->wait(c, f, w);
+            queue_->wait(c, f, w, ms);
             c->shift();
         }
 

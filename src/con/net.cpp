@@ -197,18 +197,13 @@ namespace cxx {
         int socketor::recv(char *data, size_t size, int ms)
         {
             int m = 0;
-            int i = 0;
             cxx::datetime begin(cxx::datetime::now());
             while((m = ::read(fd_, data, size)) < 0 && cxx::sys::err::get() == EAGAIN) {
                 if(ms >= 0 && (cxx::datetime::now() - begin).getTotalMilliSeconds() >= ms) {
-                    if(i != 0)
-                        cr_->sched()->close(fd_);
                     m = -2;
                     break;
                 }
-                if(i++ == 0 && ms >= 0)
-                    cr_->sched()->sleep(cr_, ms);
-                cr_->sched()->await(cr_, fd_, cxx::net::poller::readable());
+                cr_->sched()->await(cr_, fd_, cxx::net::poller::readable(), ms);
             }
             return m;
         }

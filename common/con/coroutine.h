@@ -80,13 +80,13 @@ namespace cxx {
              * threadsafe: no. can only be used by coroutine in the current scheduler
              * thread
              */
-            void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r);
+            void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r, int ms = -1);
             /** async wait for fd writable
              * complexity: O(logN)
              * threadsafe: no. can only be used by coroutine in the current scheduler
              * thread
              */
-            void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
+            void        await(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w, int ms = -1);
             void        close(cxx::net::fd_t f);
 
             /** switch the coroutine from 'f' to 't'

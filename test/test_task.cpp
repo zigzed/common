@@ -474,7 +474,7 @@ void client2(cxx::con::coroutine* c, void* arg)
 
 TEST(coroutine, net_recv_timeout)
 {
-    cxx::con::scheduler_group c(2);
+    cxx::con::scheduler_group c(1);
 
     c[0]->spawn(server2, NULL);
     c[0]->spawn(client2, NULL);

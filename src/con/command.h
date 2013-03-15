@@ -36,7 +36,10 @@ namespace cxx {
             struct ch {
                 coroutine*                  c;
                 cxx::net::poller::handle_t  h;
-                ch(coroutine* a, cxx::net::poller::handle_t b) : c(a), h(b) {}
+                int                         t;
+                int                         r;
+                ch(coroutine* a, cxx::net::poller::handle_t b, int ms, int reader)
+                    : c(a), h(b), t(ms), r(reader) {}
             };
 
             typedef cxx::alg::pipe<scheduler::command, 256 >    pipe_t;
@@ -64,8 +67,8 @@ namespace cxx {
             void    send(const scheduler::command& c);
             bool    recv(scheduler::command* c, int ms);
             size_t  size() const;
-            void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r);
-            void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w);
+            void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::readable r, int ms);
+            void    wait(coroutine* c, cxx::net::fd_t f, cxx::net::poller::writable w, int ms);
             void    drop(cxx::net::fd_t f);
             void    drop(coroutine* c);
         };

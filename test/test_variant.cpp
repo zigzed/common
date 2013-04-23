@@ -56,6 +56,20 @@ TEST(variant, usage)
         ASSERT_EQ(c.get_mtype(), cxx::alg::variant_t::Number);
         ASSERT_EQ(c.as_number(), 10000);
     }
+    {
+        cxx::alg::variant_t a(100);
+        ASSERT_EQ((a + 300).as_number(), 400);
+    }
+    {
+        cxx::alg::variant_t a(100);
+        ASSERT_EQ((std::string("300") + a).as_number(), 400);
+    }
+    {
+        // Nil is not equal
+        ASSERT_NE(cxx::alg::variant_t(), cxx::alg::variant_t());
+        ASSERT_NE(cxx::alg::variant_t(), cxx::alg::variant_t(""));
+        ASSERT_EQ(cxx::alg::variant_t(100), 100);
+    }
 }
 
 TEST(variant, string)
@@ -89,6 +103,31 @@ TEST(variant, performance2)
         cxx::alg::variant_t c = a + b;
         ASSERT_EQ(c.get_mtype(), cxx::alg::variant_t::Number);
         ASSERT_EQ(c.as_number(), i + 8);
+    }
+}
+
+TEST(variant, performance3)
+{
+    srand(time(NULL));
+    for(int i = 0; i < 1000000; ++i) {
+        int ia = random() % 100000;
+        int ib = random() % 100000;
+        cxx::alg::variant_t a(ia);
+        cxx::alg::variant_t b(ib);
+        cxx::alg::variant_t c = a + b;
+        ASSERT_EQ(c.get_mtype(), cxx::alg::variant_t::Number);
+        ASSERT_EQ(c.as_number(), ia + ib);
+    }
+}
+
+TEST(variant, baseline)
+{
+    srand(time(NULL));
+    for(int i = 0; i < 1000000; ++i) {
+        int ia = random() % 100000;
+        int ib = random() % 100000;
+        int ic = ia + ib;
+        ASSERT_EQ(ic, ia + ib);
     }
 }
 

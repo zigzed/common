@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
+#include <limits>
+#include <cmath>
 #include "common/sys/error.h"
 
 namespace cxx {
@@ -85,6 +87,36 @@ namespace cxx {
         variant_t::variant_t(const std::string &s) : type_(String)
         {
             str_ = s;
+        }
+
+        bool variant_t::operator ==(const variant_t& rhs) const
+        {
+            if(type_ != rhs.type_)
+                return false;
+            if(type_ == variant_t::Nil || rhs.type_ == variant_t::Nil)
+                return false;
+            switch(type_) {
+            case variant_t::Number:
+                return data_.iValue == rhs.data_.iValue;
+            case variant_t::String:
+                return str_ == rhs.str_;
+            case variant_t::Double:
+                return fabs(data_.dValue - rhs.data_.dValue) <
+                        16 * std::numeric_limits<double>::epsilon()
+                        * fmax(fabs(data_.dValue), fabs(rhs.data_.dValue));
+            default:
+                return false;
+            }
+        }
+
+        bool variant_t::operator !=(const variant_t& rhs) const
+        {
+            return !(*this == rhs);
+        }
+
+        bool variant_t::empty() const
+        {
+            return type_ == variant_t::Nil;
         }
 
         variant_t::meta_type variant_t::get_mtype() const
@@ -215,6 +247,18 @@ namespace cxx {
                     return variant_t();
                 }
             case variant_t::String:
+                {
+                int64_t i;
+                double  d;
+                if(converts(lhs.str_, i)) {
+                    return i + rhs;
+                }
+                else if(converts(lhs.str_, d)) {
+                    return d + rhs;
+                }
+                else
+                    return variant_t();
+                }
             default:
                 return variant_t();
             }
@@ -274,6 +318,18 @@ namespace cxx {
                     return variant_t();
                 }
             case variant_t::String:
+                {
+                int64_t i;
+                double  d;
+                if(converts(lhs.str_, i)) {
+                    return i - rhs;
+                }
+                else if(converts(lhs.str_, d)) {
+                    return d - rhs;
+                }
+                else
+                    return variant_t();
+                }
             default:
                 return variant_t();
             }
@@ -333,6 +389,18 @@ namespace cxx {
                     return variant_t();
                 }
             case variant_t::String:
+                {
+                int64_t i;
+                double  d;
+                if(converts(lhs.str_, i)) {
+                    return i * rhs;
+                }
+                else if(converts(lhs.str_, d)) {
+                    return d * rhs;
+                }
+                else
+                    return variant_t();
+                }
             default:
                 return variant_t();
             }
@@ -408,6 +476,18 @@ namespace cxx {
                     return variant_t();
                 }
             case variant_t::String:
+                {
+                int64_t i;
+                double  d;
+                if(converts(lhs.str_, i)) {
+                    return i / rhs;
+                }
+                else if(converts(lhs.str_, d)) {
+                    return d / rhs;
+                }
+                else
+                    return variant_t();
+                }
             default:
                 return variant_t();
             }

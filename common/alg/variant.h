@@ -24,7 +24,10 @@ namespace cxx {
             int64_t     as_number() const;
             std::string as_string() const;
             double      as_double() const;
+            bool        empty() const;
 
+            bool operator== (const variant_t& rhs) const;
+            bool operator!= (const variant_t& rhs) const;
             friend variant_t operator+(const variant_t& lhs, const variant_t& rhs);
             friend variant_t operator-(const variant_t& lhs, const variant_t& rhs);
             friend variant_t operator*(const variant_t& lhs, const variant_t& rhs);

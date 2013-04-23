@@ -57,6 +57,7 @@ namespace cxx {
         private:
             const std::string& next();
             std::string name_;
+            Path        base_;
 #if     defined(OS_LINUX)
             DIR*        pdir_;
 #elif   defined(OS_WINDOWS)

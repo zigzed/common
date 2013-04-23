@@ -66,6 +66,10 @@ namespace cxx {
             return ret;
         }
 
+        /** 判断字符串是否为函数的条件为："LETTER [DIGIT|LETTER|_]* [SPACE]* ("
+         *  以字母开始，后面可以是一个或者多个字母、数字、下划线，并且
+         *  后面是空格（可选多个）加上括号
+         */
         int rpn_express::is_function(const char* input, size_t len) const
         {
             const char* c = input;
@@ -96,6 +100,11 @@ namespace cxx {
             }
         }
 
+        /** 判断字符串是否为identifier。判断identifier的条件为："LETTER [DIGIT|LETTER|_|.]* [SPACE]* ^[(|)|,]"
+         *  全部为数字，或者
+         *  以字母开始，后面允许存在字母、数字、下划线和点号，并且
+         *  后面的非空字符不允许为左括号（区分函数和ID）
+         */
         int rpn_express::is_identies(const char *input, size_t len) const
         {
             const char* c = input;
@@ -103,7 +112,7 @@ namespace cxx {
             if(isdigit(*c))
                 return is_numberic(input, len);
             if(isalpha(*c)) {
-                while(isalnum(*c) || *c == '_') {
+                while(isalnum(*c) || *c == '_' || *c == '.') {
                     ++r;
                     ++c;
                 }
@@ -167,7 +176,7 @@ namespace cxx {
             return 0;
         }
 
-        void rpn_express::symbol(rpn_symbols *symbols)
+        void rpn_express::lookup(rpn_symbols *symbols)
         {
             resolver_ = symbols;
         }
@@ -339,8 +348,7 @@ namespace cxx {
                 const std::string&  c = expr[curp].first;
                 int                 d = expr[curp].second;
                 if(d == TT_NUMBERIC || d == TT_IDENTIES) {
-                    rpn_function* fn = resolver_->resolve(c.c_str());
-                    fn->done_arg();
+                    rpn_function* fn = resolver_->resolve(c.c_str(), rpn_function::arg_t());
                     stack.push_back(fn);
                 }
                 else if(d == TT_OPERATOR || d == TT_FUNCTION) {
@@ -352,13 +360,14 @@ namespace cxx {
                         return NULL;
                     }
 
-                    rpn_function* fn = resolver_->resolve(c.c_str());
+                    rpn_function::arg_t args;
                     while(n > 0) {
                         rpn_function* arg = stack[stack.size() - n];
-                        fn->push_arg(arg);
+                        args.push_back(arg);
                         --n;
                     }
-                    fn->done_arg();
+                    rpn_function* fn = resolver_->resolve(c.c_str(), args);
+
                     n = num_args(c);
                     while(n > 0) {
                         stack.pop_back();
@@ -366,12 +375,23 @@ namespace cxx {
                     }
                     stack.push_back(fn);
                 }
+                else {
+                    std::ostringstream str;
+                    str << "unknown expr type: " << c << ":" << d;
+                    throw rpn_error(rpn_error::RPN_INV_TOKEN, str.str().c_str(), 0);
+                }
                 curp++;
             }
             if(stack.size() == 1) {
                 return stack.back();
             }
             return NULL;
+        }
+
+        rpn_function* rpn_express::create(const std::string &input) const throw(rpn_error)
+        {
+            rpn_express::expr_t expr = this->parser(input);
+            return this->create(expr);
         }
 
     }

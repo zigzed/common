@@ -116,6 +116,7 @@ set(COMMON_SRC
     ../common/sys/threads.h sys/threads.cpp
     ../common/sys/atomic.h sys/atomic.cpp
     ../common/sys/error.h sys/error.cpp
+    ../common/sys/condvar.h sys/condvar.cpp
     ../common/con/coroutine.h con/coroutine/asm.S con/coroutine.cpp 
     #con/context.h con/context.cpp
     ${FCONTEXT_SRC}
@@ -124,12 +125,15 @@ set(COMMON_SRC
     ../common/con/net.h con/net.cpp
     ../common/con/fd.h con/fd.cpp
     ../common/alg/crc.h alg/crc.cpp
+    ../common/alg/url.h alg/url.cpp
     ../common/alg/rlcbitmap.h ../common/alg/lrucache.h
     ../common/alg/expression.h alg/expression.cpp
+    ../common/alg/rpnexp.h alg/rpnexp.cpp
     ../common/alg/digraph.h
     ../common/alg/pipe.h
     ../common/alg/channel.h
     ../common/alg/inputbuf.h alg/inputbuf.cpp
+    ../common/alg/variant.h alg/variant.cpp
     ../common/cfg/properties.h cfg/properties.cpp
     ../common/cfg/json/json-forwards.h ../common/cfg/json/json.h
     cfg/json/jsoncpp.cpp

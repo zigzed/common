@@ -29,35 +29,37 @@ namespace cxx {
 
         class rpn_function {
         public:
-            virtual void push_arg(rpn_function* fn) = 0;
-            virtual void done_arg() = 0;
+            typedef std::vector<rpn_function* > arg_t;
+
             virtual ~rpn_function() {}
         };
 
         class rpn_symbols {
         public:
             virtual ~rpn_symbols() {}
-            virtual rpn_function* resolve(const char* name) const = 0;
+            virtual rpn_function* resolve(const char* name, const rpn_function::arg_t& args) const = 0;
         };
 
         class rpn_express {
         public:
-            typedef std::vector<std::pair<std::string, int > >   expr_t;
             /// 设置 rpn_express 符号查询接口。符号查询包括变量、函数、表达式
-            void   symbol(rpn_symbols* symbols);
+            void   lookup(rpn_symbols* symbols);
             /// 设置函数参数个数
             void   setarg(const std::string& func, int nargs);
-            /// 将表达式解析通过 shunting yard 算法解析
-            expr_t parser(const std::string& input) const throw(rpn_error);
-            /// 将 shunting yard 解析的结果通过符号表查询创建为表达式
-            rpn_function *create(const expr_t& exp) const throw(rpn_error);
+
+            rpn_function* create(const std::string& input) const throw(rpn_error);
         private:
             int     is_operator(const char* input, size_t len) const;
             int     is_function(const char* input, size_t len) const;
             int     is_numberic(const char* input, size_t len) const;
             int     is_identies(const char* input, size_t len) const;
             int     num_args(const std::string& input) const;
-            bool    is_ident(char c);
+
+            typedef std::vector<std::pair<std::string, int > >   expr_t;
+            /// 将表达式解析通过 shunting yard 算法解析
+            expr_t parser(const std::string& input) const throw(rpn_error);
+            /// 将 shunting yard 解析的结果通过符号表查询创建为表达式
+            rpn_function *create(const expr_t& exp) const throw(rpn_error);
 
             typedef std::map<std::string, int >    func_table;
             func_table      function_;

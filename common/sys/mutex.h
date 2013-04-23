@@ -55,6 +55,7 @@ namespace cxx {
 
         class plainmutex {
             friend class detail::syncobj<plainmutex>;
+            friend class cond_var;
         public:
             typedef detail::plainmutex_t            mutex_t;
             typedef detail::scopelock<plainmutex>	scopelock;

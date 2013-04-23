@@ -109,23 +109,23 @@ namespace cxx {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        DirIterator::DirIterator() : pdir_(NULL), hold_(false)
+        DirIterator::DirIterator() : base_(Path::curpath()), pdir_(NULL), hold_(false)
         {
         }
 
-        DirIterator::DirIterator(const char *path) : pdir_(NULL), hold_(true)
+        DirIterator::DirIterator(const char *path) : base_(path), pdir_(NULL), hold_(true)
         {
             pdir_ = opendir(path);
             next();
         }
 
-        DirIterator::DirIterator(const Path &path) : pdir_(NULL), hold_(true)
+        DirIterator::DirIterator(const Path &path) : base_(path), pdir_(NULL), hold_(true)
         {
             pdir_ = opendir(path.name());
             next();
         }
 
-        DirIterator::DirIterator(const DirIterator &rhs) : hold_(true)
+        DirIterator::DirIterator(const DirIterator &rhs) : base_(rhs.base_), hold_(true)
         {
             name_ = rhs.name_;
             pdir_ = rhs.pdir_;
@@ -138,6 +138,7 @@ namespace cxx {
                 return *this;
 
             name_ = rhs.name_;
+            base_ = rhs.base_;
             pdir_ = rhs.pdir_;
             hold_ = true;
             rhs.hold_ = false;
@@ -158,7 +159,9 @@ namespace cxx {
 
         Path DirIterator::path() const
         {
-            return Path(name_.c_str());
+            Path result(base_);
+            result.append(name_.c_str());
+            return result;
         }
 
         DirIterator& DirIterator::operator ++()
